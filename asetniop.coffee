@@ -1,29 +1,66 @@
+#define MASK_HAS(mask, bits) ((mask & bits) is bits)
 #define MASK_ON(mask, bits) (mask = mask | bits)
 #define MASK_OFF(mask, bits) (mask = mask ^ (mask & bits))
+#define MASK_TOGGLE(mask, bits) if MASK_HAS(mask, bits) then MASK_OFF(mask, bits) else MASK_ON(mask, bits)
+
+# the various bits of the gesture mask:
+#define A_BIT 1
+#define S_BIT 2
+#define E_BIT 4
+#define T_BIT 8
+#define N_BIT 16
+#define I_BIT 32
+#define O_BIT 64
+#define P_BIT 128
+#define SHIFT_BIT 256
+#define SPACE_BIT 512
+
+# the evt.keyCode values from keyup/down events
+#define A_KEY 65
+#define Q_KEY 81
+#define S_KEY 83
+#define W_KEY 87
+#define D_KEY 68
+#define E_KEY 69
+#define F_KEY 70
+#define R_KEY 82
+#define J_KEY 74
+#define U_KEY 85
+#define K_KEY 75
+#define I_KEY 73
+#define L_KEY 76
+#define O_KEY 79
+#define SEMICOLON_KEY 186
+#define P_KEY 80
+#define C_KEY 67
+#define V_KEY 86
+#define N_KEY 66
+#define M_KEY 78
+#define SPACE_KEY 32
 
 # each key in Combos is a bitmask
-KeyCodes =
-	65: 1 # a-key = a = 1
-	81: 1 # qwer - uiop aliases
-	83: 2 # s-key = s = 2
-	87: 2
-	68: 4 # d-key = e = 4
-	69: 4
-	70: 8 # f-key = t = 8
-	82: 8
-	74: 16 # j-key = n = 16
-	85: 16
-	75: 32 # k-key = i = 32
-	73: 32
-	76: 64 # l-key = o = 64
-	79: 64
-	186: 128 # ;-key = p = 128
-	80: 128
-	67: 256 # c-key = shift = 256
-	86: 256 # v-key = shift = 256
-	66: 256 # b-key = shift = 256
-	78: 256 # n-key = shift = 256
-	32: 512 # space = space = 512
+KeyMap =
+	A_KEY: A_BIT
+	Q_KEY: A_BIT
+	S_KEY: S_BIT
+	W_KEY: S_BIT
+	D_KEY: E_BIT
+	E_KEY: E_BIT
+	F_KEY: T_BIT
+	R_KEY: T_BIT
+	J_KEY: N_BIT
+	U_KEY: N_BIT
+	K_KEY: I_BIT
+	I_KEY: I_BIT
+	L_KEY: O_BIT
+	O_KEY: O_BIT
+	SEMICOLON_KEY: P_BIT
+	P_KEY: P_BIT
+	C_KEY: SHIFT_BIT
+	V_KEY: SHIFT_BIT
+	N_KEY: SHIFT_BIT
+	M_KEY: SHIFT_BIT
+	SPACE_KEY: SPACE_BIT
 Combos =
 	0: "" # unused
 	1: "a"
@@ -280,7 +317,7 @@ Combos =
 	252: "problem"
 	253: "family"
 	254: "economic"
-	# 1 unused
+	# 255: unused
 	256: "<Shift>"
 	257: "A"
 	258: "S"
@@ -288,60 +325,59 @@ Combos =
 	260: "E"
 	261: "X"
 	262: "D"
-	# 1 unused
+	# 263: unused
 	264: "T"
 	265: "F"
 	266: "C"
-	# 1 unused
+	# 267: unused
 	268: "R"
-	# 3 unused
+	# 269-271: unused
 	272: "N"
 	273: "Q"
 	274: "J"
-	# 1 unused
+	# 275: unused
 	276: "Y"
-	# 3 unused
+	# 277-279: unused
 	280: "B"
-	# 7 unused
+	# 281-287: unused
 	288: "I"
 	289: "<Ctrl>"
 	290: "Z"
-	# 1 unused
+	# 291: unused
 	292: "<"
-	# 3 unused
+	# 293-295: unused
 	296: "V"
-	# [297-303] unused
+	# 297-303: unused
 	304: "H"
-	# [305-319] unused
+	# 305-319: unused
 	320: "O"
 	321: "<Alt>"
 	322: ">"
 	# 1 unused
 	324: "_"
-	# [325-327] unused
+	# 325-327: unused
 	328: "G"
-	# [329-335] unused
+	# 329-335: unused
 	336: "U"
-	# [337-351] unused
+	# 337-351: unused
 	352: "L"
-	# [353-383] unused
+	# 353-383: unused
 	384: "P"
 	385: "/"
 	386: "<Esc>"
-	# 387 unused
+	# 387: unused
 	388: '"'
-	# [389-391] unused
+	# 389-391: unused
 	392: "\t"
-	# [393-399] unused
+	# 393-399: unused
 	400: "M"
-	# [401-415] unused
+	# 401-415: unused
 	416: "K"
-	# [417-447] unused
+	# 417-447: unused
 	448: ":"
-	# [449-511] unused
+	# 449-511: unused
 	512: " "
 	768: "\n"
-
 
 $(document).ready ->
 	$(".asetniop").each ->
@@ -379,12 +415,13 @@ $(document).ready ->
 						range.select()
 		t = $(@)
 		t.bind 'keydown', (evt) ->
-			MASK_ON(gesture, sticky | KeyCodes[evt.keyCode])
+			MASK_ON(gesture, sticky | KeyMap[evt.keyCode])
+			console.log evt.type, "#{evt.keyCode} -> #{KeyMap[evt.keyCode]} + #{sticky} == #{gesture}"
 			hasNewKeys = true
 			false
 		t.bind 'keyup', (evt) ->
-			code = KeyCodes[evt.keyCode]
 			value = Combos[gesture]
+			console.log evt.type, "#{evt.keyCode} -> #{KeyMap[evt.keyCode]} + #{sticky} == #{gesture} (#{value})"
 			modified = false
 			if hasNewKeys
 				if /^<\w+>$/.test value
@@ -395,16 +432,16 @@ $(document).ready ->
 							@caretPos = c - 1
 							modified = true
 						when "<Shift>"
-							MASK_ON(sticky, 256)
+							MASK_TOGGLE(sticky, SHIFT_BIT)
 				else if value?
 					c = @caretPos
 					@value = $.stringSplice @value, c, c, value
 					@caretPos = c + value.length
 					modified = true
+			code = KeyMap[evt.keyCode]
 			MASK_OFF(gesture, code)
 			if modified
-				if gesture is sticky
-					gesture = 0
+				MASK_OFF(gesture, sticky)
 				sticky = 0
 				hasNewKeys = false
 			false
