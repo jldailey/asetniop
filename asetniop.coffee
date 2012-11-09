@@ -62,322 +62,209 @@ KeyMap =
 	M_KEY: SHIFT_BIT
 	SPACE_KEY: SPACE_BIT
 Combos =
-	0: "" # unused
-	1: "a"
-	2: "s"
-	3: "w"
-	4: "e"
-	5: "x"
-	6: "d"
-	7: "ad"
-	8: "t"
-	9: "f"
-	10: "c"
-	11: "ac"
-	12: "r"
-	13: "ar"
-	14: "est"
-	15: "wr"
-	16: "n"
-	17: "q"
-	18: "j"
-	19: "wn"
-	20: "y"
-	21: "ay"
-	22: "nd"
-	23: "and"
-	24: "b"
-	25: "ab"
-	26: "nc"
-	27: "can"
-	28: "be"
-	29: "ran"
-	30: "best"
-	31: "between"
-	32: "i"
-	33: "!"
-	34: "z"
-	35: "wi"
-	36: ","
-	37: "xi"
-	38: "di"
-	39: "said"
-	40: "v"
-	41: "fi"
-	42: "ci"
-	43: "-"
-	44: "ve"
-	45: "five"
-	46: "tried"
-	47: "first"
-	48: "h"
-	49: "ha"
-	50: "sh"
-	51: "wh"
-	52: "he"
-	53: "-"
-	54: "she"
-	55: "when"
-	56: "th"
-	57: "that"
-	58: "ch"
-	59: "with"
-	60: "the"
-	61: "have"
-	62: "these"
-	63: "where"
-	64: "o"
-	65: "("
-	66: "."
-	67: "wo"
-	68: "-"
-	69: "xo"
-	70: "do"
-	71: "-"
-	72: "g"
-	73: "fo"
-	74: "co"
-	75: "two"
-	76: "ro"
-	77: "for"
-	78: "dg"
-	79: "worst"
-	80: "u"
-	81: "qu"
-	82: "su"
-	83: "now"
-	84: "eu"
-	85: "-"
-	86: "du"
-	87: "down"
-	88: "but"
-	89: "fu"
-	90: "cu"
-	91: "cannot"
-	92: "ru"
-	93: "before"
-	94: "course"
-	95: "because"
-	96: "l"
-	97: "al"
-	98: "sl"
-	99: "will"
-	100: "el"
-	101: "-"
-	102: "dl"
-	103: "well"
-	104: "gi"
-	105: "fl"
-	106: "cl"
-	107: "social"
-	108: "rl"
-	109: "felt"
-	110: "told"
-	111: "world"
-	112: "ion"
-	113: "hall"
-	114: "ious1"
-	115: "who"
-	116: "ly"
-	117: "alone"
-	118: "ould"
-	119: "would"
-	120: "tion"
-	121: "from"
-	122: "such"
-	123: "against"
-	124: "through"
-	125: "another"
-	126: "could"
-	127: "already"
-	128: "p"
-	129: "?"
-	130: ")"
-	131: "-"
-	132: "'"
-	133: "xp"
-	134: "s"
-	135: "-"
-	136: "<Backspace>"
-	137: "-"
-	138: "-"
-	139: "past"
-	140: "rp"
-	141: "part"
-	142: "step"
-	143: "expected"
-	144: "m"
-	145: "am"
-	146: "sm"
-	147: "mass"
-	148: "em"
-	149: "may"
-	150: "seems"
-	151: "same"
-	152: "tm"
-	153: "-"
-	154: "-"
-	155: "-"
-	156: "rm"
-	157: "army"
-	158: "system"
-	159: "came"
-	160: "k"
-	161: "ak"
-	162: "sk"
-	163: "ask"
-	164: "ke"
-	165: "-"
-	166: "-"
-	167: "asked"
-	168: "-"
-	169: "-"
-	170: "ck"
-	171: "attack"
-	172: "rk"
-	173: "take"
-	174: "spirit"
-	175: "dark"
-	176: "mi"
-	177: "main"
-	178: "miss"
-	179: "-"
-	180: "-"
-	181: "make"
-	182: "mind"
-	183: "knew"
-	184: "think"
-	185: "-"
-	186: "-"
-	187: "back"
-	188: "them"
-	189: "taken"
-	190: "didn't"
-	191: "american"
-	192: ";"
-	193: "-"
-	194: "-"
-	195: "-"
-	196: "o'"
-	197: "-"
-	198: "-"
-	199: "-"
-	200: "top"
-	201: "-"
-	202: "stop"
-	203: "-"
-	204: "pro"
-	205: "-"
-	206: "stopped"
-	207: "power"
-	208: "mo"
-	209: "-"
-	210: "-"
-	211: "woman"
-	212: "open"
-	213: "-"
-	214: "some"
-	215: "women"
-	216: "put"
-	217: "among"
-	218: "most"
-	219: "-"
-	220: "more"
-	221: "from"
-	222: "come"
-	223: "company"
-	224: "lp"
-	225: "-"
-	226: "-"
-	227: "-"
-	228: "like"
-	229: "-"
-	230: "looked"
-	231: "walked"
-	232: "took"
-	233: "talk"
-	234: "stock"
-	235: "lack"
-	236: "-"
-	237: "-"
-	238: "period"
-	239: "work"
-	240: "lm"
-	241: "human"
-	242: "-"
-	243: "small"
-	244: "home"
-	245: "example"
-	246: "simply"
-	247: "played"
-	248: "book"
-	249: "taking"
-	250: "much"
-	251: "almost"
-	252: "problem"
-	253: "family"
-	254: "economic"
-	# 255: unused
-	256: "<Shift>"
-	257: "A"
-	258: "S"
-	259: "W"
-	260: "E"
-	261: "X"
-	262: "D"
-	# 263: unused
-	264: "T"
-	265: "F"
-	266: "C"
-	# 267: unused
-	268: "R"
-	# 269-271: unused
-	272: "N"
-	273: "Q"
-	274: "J"
-	# 275: unused
-	276: "Y"
-	# 277-279: unused
-	280: "B"
-	# 281-287: unused
-	288: "I"
-	289: "<Ctrl>"
-	290: "Z"
-	# 291: unused
-	292: "<"
-	# 293-295: unused
-	296: "V"
-	# 297-303: unused
-	304: "H"
-	# 305-319: unused
-	320: "O"
-	321: "<Alt>"
-	322: ">"
-	# 1 unused
-	324: "_"
-	# 325-327: unused
-	328: "G"
-	# 329-335: unused
-	336: "U"
-	# 337-351: unused
-	352: "L"
-	# 353-383: unused
-	384: "P"
-	385: "/"
-	386: "<Esc>"
-	# 387: unused
-	388: '"'
-	# 389-391: unused
-	392: "\t"
-	# 393-399: unused
-	400: "M"
-	# 401-415: unused
-	416: "K"
-	# 417-447: unused
-	448: ":"
-	# 449-511: unused
-	512: " "
-	768: "\n"
+	0: ""  # 
+	1: "a" # a
+	2: "s" # s
+	3: "w" # a+s
+	4: "e" # e
+	5: "x" # a+e
+	6: "d" # s+e
+	7: "we" # a+s+e
+	8: "t" # t
+	9: "f" # a+t
+	10: "c" # s+t
+	11: "ac" # a+s+t
+	12: "r" # e+t
+	13: "ar" # a+e+t
+	14: "est" # s+e+t
+	15: "wr" # a+s+e+t
+	16: "n" # n
+	17: "q" # a+n
+	18: "j" # s+n
+	19: "wn" # a+s+n
+	20: "y" # e+n
+	21: "ay" # a+e+n
+	22: "nd" # s+e+n
+	23: "and" # a+s+e+n
+	24: "b" # t+n
+	25: "ab" # a+t+n
+	26: "nc" # s+t+n
+	27: "can" # a+s+t+n
+	28: "be" # e+t+n
+	29: "ran" # a+e+t+n
+	30: "best" # s+e+t+n
+	31: "between" # a+s+e+t+n
+	32: "i" # i
+	33: "!" # a+i
+	34: "z" # s+i
+	35: "wi" # a+s+i
+	36: "," # e+i
+	37: "xi" # a+e+i
+	38: "di" # s+e+i
+	39: "said" # a+s+e+i
+	40: "v" # t+i
+	41: "fi" # a+t+i
+	42: "ci" # s+t+i
+	43: "-" # a+s+t+i
+	44: "ve" # e+t+i
+	45: "five" # a+e+t+i
+	46: "tried" # s+e+t+i
+	47: "first" # a+s+e+t+i
+	48: "h" # n+i
+	49: "ha" # a+n+i
+	50: "sh" # s+n+i
+	51: "wh" # a+s+n+i
+	52: "he" # e+n+i
+	53: "-" # a+e+n+i
+	54: "she" # s+e+n+i
+	55: "when" # a+s+e+n+i
+	56: "th" # t+n+i
+	57: "that" # a+t+n+i
+	58: "ch" # s+t+n+i
+	59: "with" # a+s+t+n+i
+	60: "the" # e+t+n+i
+	61: "have" # a+e+t+n+i
+	62: "these" # s+e+t+n+i
+	63: "where" # a+s+e+t+n+i
+	64: "o" # o
+	65: "(" # a+o
+	66: "." # s+o
+	67: "wo" # a+s+o
+	68: "-" # e+o
+	69: "xo" # a+e+o
+	70: "do" # s+e+o
+	72: "g" # t+o
+	73: "fo" # a+t+o
+	74: "co" # s+t+o
+	75: "two" # a+s+t+o
+	76: "ro" # e+t+o
+	77: "for" # a+e+t+o
+	78: "dg" # s+e+t+o
+	79: "worst" # a+s+e+t+o
+	80: "u" # n+o
+	81: "qu" # a+n+o
+	82: "su" # s+n+o
+	83: "now" # a+s+n+o
+	84: "eu" # e+n+o
+	86: "du" # s+e+n+o
+	87: "down" # a+s+e+n+o
+	88: "but" # t+n+o
+	89: "fu" # a+t+n+o
+	90: "cu" # s+t+n+o
+	91: "cannot" # a+s+t+n+o
+	92: "ru" # e+t+n+o
+	93: "before" # a+e+t+n+o
+	94: "course" # s+e+t+n+o
+	95: "because" # a+s+e+t+n+o
+	96: "l" # i+o
+	97: "al" # a+i+o
+	98: "sl" # s+i+o
+	99: "will" # a+s+i+o
+	100: "el" # e+i+o
+	102: "dl" # s+e+i+o
+	103: "well" # a+s+e+i+o
+	104: "gi" # t+i+o
+	105: "fl" # a+t+i+o
+	106: "cl" # s+t+i+o
+	107: "class" # a+s+t+i+o
+	108: "rl" # e+t+i+o
+	116: "ly" # e+n+i+o
+	118: "ould" # s+e+n+i+o
+	119: "would" # a+s+e+n+i+o
+	120: "tion" # t+n+i+o
+	121: "from" # a+t+n+i+o
+	122: "such" # s+t+n+i+o
+	128: "p" # p
+	129: "?" # a+p
+	130: ")" # s+p
+	132: "'" # e+p
+	133: "xp" # a+e+p
+	134: "s" # s+e+p
+	136: "<Backspace>" # t+p
+	139: "past" # a+s+t+p
+	140: "rp" # e+t+p
+	141: "part" # a+e+t+p
+	142: "step" # s+e+t+p
+	144: "m" # n+p
+	145: "am" # a+n+p
+	146: "sm" # s+n+p
+	148: "em" # e+n+p
+	149: "may" # a+e+n+p
+	150: "seem" # s+e+n+p
+	151: "same" # a+s+e+n+p
+	152: "tm" # t+n+p
+	156: "rm" # e+t+n+p
+	159: "came" # a+s+e+t+n+p
+	160: "k" # i+p
+	161: "ak" # a+i+p
+	162: "sk" # s+i+p
+	163: "ask" # a+s+i+p
+	164: "ke" # e+i+p
+	167: "asked" # a+s+e+i+p
+	170: "ck" # s+t+i+p
+	172: "rk" # e+t+i+p
+	173: "take" # a+e+t+i+p
+	176: "mi" # n+i+p
+	177: "main" # a+n+i+p
+	181: "make" # a+e+n+i+p
+	187: "back" # a+s+t+n+i+p
+	188: "them" # e+t+n+i+p
+	192: ";" # o+p
+	196: "o'" # e+o+p
+	200: "top" # t+o+p
+	202: "stop" # s+t+o+p
+	204: "pro" # e+t+o+p
+	208: "mo" # n+o+p
+	214: "some" # s+e+n+o+p
+	216: "put" # t+n+o+p
+	218: "most" # s+t+n+o+p
+	220: "more" # e+t+n+o+p
+	221: "from" # a+e+t+n+o+p
+	222: "come" # s+e+t+n+o+p
+	224: "lp" # i+o+p
+	240: "lm" # n+i+o+p
+	256: "<Shift>" # shift
+	257: "A" # a+shift
+	258: "S" # s+shift
+	259: "W" # a+s+shift
+	260: "E" # e+shift
+	261: "X" # a+e+shift
+	262: "D" # s+e+shift
+	264: "T" # t+shift
+	265: "F" # a+t+shift
+	266: "C" # s+t+shift
+	268: "R" # e+t+shift
+	272: "N" # n+shift
+	273: "Q" # a+n+shift
+	274: "J" # s+n+shift
+	276: "Y" # e+n+shift
+	280: "B" # t+n+shift
+	288: "I" # i+shift
+	289: "<Ctrl>" # a+i+shift
+	290: "Z" # s+i+shift
+	292: "<" # e+i+shift
+	296: "V" # t+i+shift
+	304: "H" # n+i+shift
+	320: "O" # o+shift
+	321: "<Alt>" # a+o+shift
+	322: ">" # s+o+shift
+	324: "_" # e+o+shift
+	326: "->" # s+e+o+shift
+	328: "G" # t+o+shift
+	336: "U" # n+o+shift
+	346: "constructor"
+	352: "L" # i+o+shift
+	384: "P" # p+shift
+	385: "/" # a+p+shift
+	386: "<Esc>" # s+p+shift
+	388: '"' # e+p+shift
+	392: "\n" # t+p+shift
+	400: "M" # n+p+shift
+	416: "K" # i+p+shift
+	448: ":" # o+p+shift
+	480: "->" # i+o+p+shift
+	512: " " # space
+	768: "\t" # shift+space
 
 $(document).ready ->
 	$(".asetniop").each ->
