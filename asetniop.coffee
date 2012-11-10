@@ -88,12 +88,8 @@ Combos =
 	23: "and" # a+s+e+n
 	24: "b" # t+n
 	25: "ab" # a+t+n
-	26: "nc" # s+t+n
 	27: "can" # a+s+t+n
 	28: "be" # e+t+n
-	29: "ran" # a+e+t+n
-	30: "best" # s+e+t+n
-	31: "between" # a+s+e+t+n
 	32: "i" # i
 	33: "!" # a+i
 	34: "z" # s+i
@@ -105,27 +101,20 @@ Combos =
 	40: "v" # t+i
 	41: "fi" # a+t+i
 	42: "ci" # s+t+i
-	43: "-" # a+s+t+i
 	44: "ve" # e+t+i
 	45: "five" # a+e+t+i
 	46: "tried" # s+e+t+i
-	47: "first" # a+s+e+t+i
 	48: "h" # n+i
 	49: "ha" # a+n+i
 	50: "sh" # s+n+i
 	51: "wh" # a+s+n+i
 	52: "he" # e+n+i
-	53: "-" # a+e+n+i
 	54: "she" # s+e+n+i
-	55: "when" # a+s+e+n+i
 	56: "th" # t+n+i
 	57: "that" # a+t+n+i
 	58: "ch" # s+t+n+i
 	59: "with" # a+s+t+n+i
 	60: "the" # e+t+n+i
-	61: "have" # a+e+t+n+i
-	62: "these" # s+e+t+n+i
-	63: "where" # a+s+e+t+n+i
 	64: "o" # o
 	65: "(" # a+o
 	66: "." # s+o
@@ -137,43 +126,31 @@ Combos =
 	73: "fo" # a+t+o
 	74: "co" # s+t+o
 	75: "two" # a+s+t+o
-	76: "ro" # e+t+o
+	76: "or" # e+t+o
 	77: "for" # a+e+t+o
 	78: "dg" # s+e+t+o
-	79: "worst" # a+s+e+t+o
 	80: "u" # n+o
 	81: "qu" # a+n+o
 	82: "su" # s+n+o
 	83: "now" # a+s+n+o
 	84: "eu" # e+n+o
 	86: "du" # s+e+n+o
-	87: "down" # a+s+e+n+o
 	88: "but" # t+n+o
 	89: "fu" # a+t+n+o
 	90: "cu" # s+t+n+o
-	91: "cannot" # a+s+t+n+o
 	92: "ru" # e+t+n+o
-	93: "before" # a+e+t+n+o
-	94: "course" # s+e+t+n+o
-	95: "because" # a+s+e+t+n+o
 	96: "l" # i+o
 	97: "al" # a+i+o
 	98: "sl" # s+i+o
-	99: "will" # a+s+i+o
 	100: "el" # e+i+o
 	102: "dl" # s+e+i+o
-	103: "well" # a+s+e+i+o
 	104: "gi" # t+i+o
 	105: "fl" # a+t+i+o
 	106: "cl" # s+t+i+o
 	107: "class" # a+s+t+i+o
 	108: "rl" # e+t+i+o
 	116: "ly" # e+n+i+o
-	118: "ould" # s+e+n+i+o
-	119: "would" # a+s+e+n+i+o
 	120: "tion" # t+n+i+o
-	121: "from" # a+t+n+i+o
-	122: "such" # s+t+n+i+o
 	128: "p" # p
 	129: "?" # a+p
 	130: ")" # s+p
@@ -191,36 +168,23 @@ Combos =
 	148: "em" # e+n+p
 	149: "may" # a+e+n+p
 	150: "seem" # s+e+n+p
-	151: "same" # a+s+e+n+p
 	152: "tm" # t+n+p
 	156: "rm" # e+t+n+p
-	159: "came" # a+s+e+t+n+p
 	160: "k" # i+p
 	161: "ak" # a+i+p
 	162: "sk" # s+i+p
 	163: "ask" # a+s+i+p
 	164: "ke" # e+i+p
-	167: "asked" # a+s+e+i+p
 	170: "ck" # s+t+i+p
 	172: "rk" # e+t+i+p
-	173: "take" # a+e+t+i+p
 	176: "mi" # n+i+p
-	177: "main" # a+n+i+p
-	181: "make" # a+e+n+i+p
-	187: "back" # a+s+t+n+i+p
-	188: "them" # e+t+n+i+p
-	192: ";" # o+p
+	192: "\t" # o+p
 	196: "o'" # e+o+p
 	200: "top" # t+o+p
 	202: "stop" # s+t+o+p
 	204: "pro" # e+t+o+p
 	208: "mo" # n+o+p
-	214: "some" # s+e+n+o+p
 	216: "put" # t+n+o+p
-	218: "most" # s+t+n+o+p
-	220: "more" # e+t+n+o+p
-	221: "from" # a+e+t+n+o+p
-	222: "come" # s+e+t+n+o+p
 	224: "lp" # i+o+p
 	240: "lm" # n+i+o+p
 	256: "<Shift>" # shift
@@ -245,6 +209,7 @@ Combos =
 	292: "<" # e+i+shift
 	296: "V" # t+i+shift
 	304: "H" # n+i+shift
+	316: "The" # e+t+n+i+shift
 	320: "O" # o+shift
 	321: "<Alt>" # a+o+shift
 	322: ">" # s+o+shift
@@ -258,13 +223,15 @@ Combos =
 	385: "/" # a+p+shift
 	386: "<Esc>" # s+p+shift
 	388: '"' # e+p+shift
-	392: "\n" # t+p+shift
+	# 392: "\n" # t+p+shift
 	400: "M" # n+p+shift
 	416: "K" # i+p+shift
 	448: ":" # o+p+shift
 	480: "->" # i+o+p+shift
 	512: " " # space
-	768: "\t" # shift+space
+	513: "a " # a+space
+	514: "s " # s+space
+	768: "\n" # shift+space
 
 $(document).ready ->
 	$(".asetniop").each ->
@@ -302,9 +269,11 @@ $(document).ready ->
 						range.select()
 		t = $(@)
 		t.bind 'keydown', (evt) ->
-			MASK_ON(gesture, sticky | KeyMap[evt.keyCode])
+			key = KeyMap[evt.keyCode]
+			if not MASK_HAS(gesture, key)
+				hasNewKeys = true
+			MASK_ON(gesture, sticky | key )
 			console.log evt.type, "#{evt.keyCode} -> #{KeyMap[evt.keyCode]} + #{sticky} == #{gesture}"
-			hasNewKeys = true
 			false
 		t.bind 'keyup', (evt) ->
 			value = Combos[gesture]
