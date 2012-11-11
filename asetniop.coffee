@@ -14,6 +14,7 @@
 #define P_BIT 128
 #define SHIFT_BIT 256
 #define SPACE_BIT 512
+#define NUMSH_BIT 1024
 
 # the evt.keyCode values from keyup/down events
 #define A_KEY 65
@@ -38,8 +39,31 @@
 #define M_KEY 78
 #define SPACE_KEY 32
 
-# each key in Combos is a bitmask
-KeyMap =
+KeyNames =
+	A_KEY: "a"
+	Q_KEY: "a"
+	S_KEY: "s"
+	W_KEY: "s"
+	D_KEY: "e"
+	E_KEY: "e"
+	F_KEY: "t"
+	R_KEY: "t"
+	J_KEY: "n"
+	U_KEY: "n"
+	K_KEY: "i"
+	I_KEY: "i"
+	L_KEY: "o"
+	O_KEY: "o"
+	SEMICOLON_KEY: "p"
+	P_KEY: "p"
+	C_KEY: "shift"
+	V_KEY: "shift"
+	N_KEY: "number"
+	M_KEY: "number"
+	SPACE_KEY: "space"
+
+# each key in MaskToOutput is a bitmask
+KeyToBit =
 	A_KEY: A_BIT
 	Q_KEY: A_BIT
 	S_KEY: S_BIT
@@ -58,10 +82,11 @@ KeyMap =
 	P_KEY: P_BIT
 	C_KEY: SHIFT_BIT
 	V_KEY: SHIFT_BIT
-	N_KEY: SHIFT_BIT
-	M_KEY: SHIFT_BIT
+	N_KEY: NUMSH_BIT
+	M_KEY: NUMSH_BIT
 	SPACE_KEY: SPACE_BIT
-Combos =
+
+MaskToOutput =
 	0: ""  # 
 	1: "a" # a
 	2: "s" # s
@@ -173,16 +198,12 @@ Combos =
 	160: "k" # i+p
 	161: "ak" # a+i+p
 	162: "sk" # s+i+p
-	163: "ask" # a+s+i+p
 	164: "ke" # e+i+p
 	170: "ck" # s+t+i+p
 	172: "rk" # e+t+i+p
 	176: "mi" # n+i+p
 	192: "\t" # o+p
-	196: "o'" # e+o+p
-	200: "top" # t+o+p
-	202: "stop" # s+t+o+p
-	204: "pro" # e+t+o+p
+	196: "->" # e+o+p
 	208: "mo" # n+o+p
 	216: "put" # t+n+o+p
 	224: "lp" # i+o+p
@@ -214,7 +235,6 @@ Combos =
 	321: "<Alt>" # a+o+shift
 	322: ">" # s+o+shift
 	324: "_" # e+o+shift
-	326: "->" # s+e+o+shift
 	328: "G" # t+o+shift
 	336: "U" # n+o+shift
 	346: "constructor"
@@ -223,27 +243,67 @@ Combos =
 	385: "/" # a+p+shift
 	386: "<Esc>" # s+p+shift
 	388: '"' # e+p+shift
-	# 392: "\n" # t+p+shift
 	400: "M" # n+p+shift
 	416: "K" # i+p+shift
 	448: ":" # o+p+shift
-	480: "->" # i+o+p+shift
 	512: " " # space
-	513: "a " # a+space
-	514: "s " # s+space
 	768: "\n" # shift+space
+	1024: "<Number>" # number
+	1280: "0" # number+shift
+	1025: "1" # number+a
+	1026: "2" # number+s
+	1027: "3" # number+a+s
+	1028: "4" # number+e
+	1029: "5" # number+a+e
+	1030: "6" # number+s+e
+	1031: "7" # number+a+s+e
+	1032: "8" # number+t
+	1033: "9" # number+a+t
+	1034: "10" # number+s+t
+
+# map in all the "a " combos
+for i in [513...1024] when (j = i - 512) of MaskToOutput and MaskToOutput[j].length < 3
+	MaskToOutput[i] = MaskToOutput[j] + " "
+
+# map in all the ASCII number
+for i in [1035..1291]
+	MaskToOutput[i] ?= "" + (i - 1024) # each ascii number "n" is number+<bits of n>
+	# it's impossible on a PC keyboard to hit 8 keys at once, so you cant quite enter every number
+	# but, they are useful in the data anyway
+
+reverseMap = (map) ->
+	ret = Object.create(null)
+	for k,v of map
+		unless v of ret
+			ret[v] = k
+	ret
+BitToKey = reverseMap KeyToBit
+window.OutputToMask = reverseMap MaskToOutput
+
+window.maskToKeys = (mask) ->
+	(KeyNames[BitToKey[i]] for i in [256, 1024, 1, 2, 4, 8, 16, 32, 64, 128, 512] when MASK_HAS(mask, i)).join "+"
+
+window.hint = (output) ->
+	# returns the list of keys to press
+	switch
+		when output of OutputToMask
+			maskToKeys OutputToMask[output]
+		when output.length > 1
+			# find the longest single chunk on the end
+			j = output.length - 1
+			--j while output[j...output.length] of OutputToMask
+			++j
+			a = output[0...j]
+			b = output[j...output.length]
+			hint(a) + ", " + hint(b)
+		else ""
 
 $(document).ready ->
 	$(".asetniop").each ->
 		gesture = 0 # bit mask of all the keys pressed during one gesture
-		sticky = 0 # bit mask of the shift,ctrl,alt keys that are in 'sticky' state
+		sticky = 0 # bit mask of the keys that are in 'sticky' state
 		hasNewKeys = false # a flag that lets us ignore keyup events on keys that were just used as a gesture
 
-		$.extend @style,
-			backgroundImage: 'url(http://asetniop.com/images/LayoutCompleteLetters.png)'
-			backgroundSize: '50%'
-			backgroundPosition: '100% 100%'
-			backgroundRepeat: 'no-repeat no-repeat'
 		$.defineProperty @, 'caretPos',
 			get: =>
 				@focus()
@@ -269,15 +329,16 @@ $(document).ready ->
 						range.select()
 		t = $(@)
 		t.bind 'keydown', (evt) ->
-			key = KeyMap[evt.keyCode]
-			if not MASK_HAS(gesture, key)
-				hasNewKeys = true
+			key = KeyToBit[evt.keyCode]
+			if MASK_HAS(gesture, key)
+				t.trigger 'keyup', evt
+			hasNewKeys = true
 			MASK_ON(gesture, sticky | key )
-			console.log evt.type, "#{evt.keyCode} -> #{KeyMap[evt.keyCode]} + #{sticky} == #{gesture}"
+			console.log evt.type, "#{evt.keyCode} -> #{KeyToBit[evt.keyCode]} + #{sticky} == #{gesture}"
 			false
 		t.bind 'keyup', (evt) ->
-			value = Combos[gesture]
-			console.log evt.type, "#{evt.keyCode} -> #{KeyMap[evt.keyCode]} + #{sticky} == #{gesture} (#{value})"
+			value = MaskToOutput[gesture]
+			console.log evt.type, "#{evt.keyCode} -> #{KeyToBit[evt.keyCode]} + #{sticky} == #{gesture} (#{value})"
 			modified = false
 			if hasNewKeys
 				if /^<\w+>$/.test value
@@ -289,12 +350,14 @@ $(document).ready ->
 							modified = true
 						when "<Shift>"
 							MASK_TOGGLE(sticky, SHIFT_BIT)
+						when "<Number>"
+							MASK_TOGGLE(sticky, NUMSH_BIT)
 				else if value?
 					c = @caretPos
 					@value = $.stringSplice @value, c, c, value
 					@caretPos = c + value.length
 					modified = true
-			code = KeyMap[evt.keyCode]
+			code = KeyToBit[evt.keyCode]
 			MASK_OFF(gesture, code)
 			if modified
 				MASK_OFF(gesture, sticky)
