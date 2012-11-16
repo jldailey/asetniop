@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>ASETNIOP - Matching Game</title>
+		<script type="text/javascript" src="../../js/bling.js"></script>
+		<script type="text/javascript" src="../../js/asetniop.js"></script>
+		<script type="text/javascript">
+			$(document).ready(function() {
+				$("#targetWord").text("Downloading wordlist...")
+				$.get("../codelines", function(words) {
+					$("#targetWord").text("Complete.")
+					window.wordlist = words.split('\n')
+					var timeout = null,
+						targetWord = null,
+						clockStarted = null,
+						wordCount = 0,
+						addScore = function(n) {
+							var s = $("#score");
+							s.text( s.text().ints().map(function(x){ return x+n; }) );
+						},
+						scheduleHint = function (targetWord, value) {
+							var timeoutLen = 3000;
+							$("#hint").zap('style.visibility', 'hidden');
+							if( targetWord.indexOf(value) == 0 ) {
+								$("#hint").text($.asetniop.hint(targetWord.replace(value,'')))
+							} else {
+								addScore(-2)
+								$("#hint").text("<Backspace>");
+								timeoutLen = 1;
+							}
+							if( timeout ) clearTimeout(timeout)
+							timeout = setTimeout(function(){
+								addScore(-1);
+								$("#hint").zap('style.visibility', 'visible')
+							}, timeoutLen)
+						},
+						nextWord = function () {
+							$("#targetWord").text(targetWord = $.random.element(window.wordlist));
+							$("#entry").zap('value', '');
+							if( clockStarted ) {
+								$("#wpm").text("WPM: " + (wordCount * 1000 * 60 / ($.now - clockStarted)).toFixed(2));
+							} else clockStarted = $.now;
+							++wordCount;
+							scheduleHint(targetWord, '');
+						}
+					nextWord()
+					$("#entry").bind('change', function() {
+						addScore(1)
+						if( this.value == targetWord ) {
+							return nextWord()
+						}
+						scheduleHint(targetWord, this.value);
+					}).select('focus').call()
+				})
+			})
+		</script>
+		<style type="text/css">
+			label {
+				float: left;
+				margin: 0px 20px 0px 0px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="game">
+			<label for="score">Score:</label><p id="score">0</p>
+			<label for="targetWord">Word:</label><p id="targetWord"></p>
+			<input type=text id="entry" class=asetniop />
+			<p id="hint"></p>
+			<p id="wpm"></p>
+		</div>
+	</body>
+</html>

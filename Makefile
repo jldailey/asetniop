@@ -1,5 +1,8 @@
 COFFEE=node_modules/.bin/coffee
+COFFEEJS=js/coffee-script.js
 BLING=node_modules/bling/dist/bling.js
+BLINGJS=js/bling.js
+D3JS=js/d3.js
 MOCHA=node_modules/.bin/mocha
 MOCHA_OPTS=--compilers coffee:coffee-script --globals document,window,Bling,$$,_ -R dot
 SRC_FILES=$(shell ls *.coffee)
@@ -7,7 +10,7 @@ TEST_FILES=$(shell ls test/*.coffee 2> /dev/null)
 FILTER_COMMENTS=grep -v '^\s*\# ' | perl -ne 's/^\s*[\#]/\#/p; print'
 PREPROC=cpp
 
-all: js/asetniop.js js/coffee-script.js
+all: js/asetniop.js $(COFFEEJS) $(BLINGJS)
 
 test: all test/pass
 	@echo "All tests are passing."
@@ -23,11 +26,9 @@ js/asetniop.js: js $(SRC_FILES) $(COFFEE) Makefile
 	@for file in $(SRC_FILES); do cat $$file | $(FILTER_COMMENTS) > stage/$$file; done
 	@(cd stage && cat asetniop.coffee | $(FILTER_COMMENTS) | $(PREPROC) | ../$(COFFEE) -sc > ../$@)
 
-js/bling.js: js $(BLING)
-	cp $(BLING) js/bling.js
-
-js/coffee-script.js: js $(COFFEE)
+$(COFFEEJS): js $(COFFEE)
 	curl http://coffeescript.org/extras/coffee-script.js > $@
+
 
 $(COFFEE):
 	npm install coffee-script
@@ -38,8 +39,14 @@ $(COFFEE):
 $(BLING):
 	npm install bling
 
+$(BLINGJS): $(BLING)
+	cp $(BLING) $@
+
 $(MOCHA):
 	npm install mocha
+
+$(D3JS):
+	curl http://d3js.org/d3.v2.min.js > $@
 
 clean:
 	rm -rf js
