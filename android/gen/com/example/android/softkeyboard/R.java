@@ -11,13 +11,13 @@ public final class R {
     public static final class attr {
     }
     public static final class color {
-        public static final int candidate_background=0x7f050003;
-        public static final int candidate_normal=0x7f050000;
-        public static final int candidate_other=0x7f050002;
-        public static final int candidate_recommended=0x7f050001;
+        public static final int candidate_background=0x7f060003;
+        public static final int candidate_normal=0x7f060000;
+        public static final int candidate_other=0x7f060002;
+        public static final int candidate_recommended=0x7f060001;
     }
     public static final class dimen {
-        public static final int key_height=0x7f060000;
+        public static final int key_height=0x7f070000;
     }
     public static final class drawable {
         public static final int icon_en_gb=0x7f020000;
@@ -30,33 +30,36 @@ public final class R {
         public static final int sym_keyboard_space=0x7f020007;
     }
     public static final class id {
-        public static final int keyboard=0x7f080000;
+        public static final int keyboard=0x7f090000;
     }
     public static final class layout {
         public static final int input=0x7f030000;
     }
+    public static final class raw {
+        public static final int gestures=0x7f050000;
+    }
     public static final class string {
-        public static final int general_category=0x7f07000a;
+        public static final int general_category=0x7f08000a;
         /**  Title for Latin keyboard  
          */
-        public static final int ime_name=0x7f070000;
+        public static final int ime_name=0x7f080000;
         /**  Labels on soft keys 
          */
-        public static final int label_go_key=0x7f070002;
-        public static final int label_next_key=0x7f070003;
-        public static final int label_send_key=0x7f070004;
-        public static final int label_subtype_en_GB=0x7f070006;
+        public static final int label_go_key=0x7f080002;
+        public static final int label_next_key=0x7f080003;
+        public static final int label_send_key=0x7f080004;
+        public static final int label_subtype_en_GB=0x7f080006;
         /**  Labels for subtype 
          */
-        public static final int label_subtype_generic=0x7f070005;
-        public static final int language_selection_title=0x7f070008;
-        public static final int select_language=0x7f070009;
+        public static final int label_subtype_generic=0x7f080005;
+        public static final int language_selection_title=0x7f080008;
+        public static final int select_language=0x7f080009;
         /**  Titles for ImePreference 
          */
-        public static final int settings_name=0x7f070007;
+        public static final int settings_name=0x7f080007;
         /**  Symbols that are commonly considered word separators in this language 
          */
-        public static final int word_separators=0x7f070001;
+        public static final int word_separators=0x7f080001;
     }
     public static final class xml {
         public static final int asetniop=0x7f040000;

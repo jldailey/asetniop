@@ -49,4 +49,3 @@
             android:isSticky="true" android:keyEdgeFlags="right"/>
     </Row>
 </Keyboard>
-    
