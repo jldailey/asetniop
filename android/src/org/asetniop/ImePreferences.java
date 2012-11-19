@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.example.android.softkeyboard;
+package org.asetniop;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import com.android.inputmethodcommon.InputMethodSettingsFragment;
+import com.example.android.softkeyboard.R;
 
 /**
  * Displays the IME preferences inside the input method setting.
