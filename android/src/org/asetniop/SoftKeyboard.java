@@ -16,6 +16,9 @@
 
 package org.asetniop;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 
 import org.json.JSONException;
@@ -23,8 +26,13 @@ import org.json.JSONObject;
 
 import com.example.android.softkeyboard.R;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.graphics.Color;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.inputmethodservice.InputMethodService;
-import android.inputmethodservice.KeyboardView;
 import android.text.InputType;
 import android.util.Log;
 import android.util.SparseArray;
@@ -32,7 +40,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputConnection;
 import android.widget.*;
 
 public class SoftKeyboard extends InputMethodService {
@@ -53,14 +60,17 @@ public class SoftKeyboard extends InputMethodService {
     private static SparseArray<String> mGestures = new SparseArray<String>();
     
     // the root view that we return to the framework when it wants to show the keyboard
-    private View mInputView;
+    @SuppressWarnings("unused")
+	private View mInputView;
     private KeyToucher toucher;
     
     @Override public void onCreate() {
         super.onCreate();
+        toucher = new KeyToucher(this);
         try {
         	JSONObject obj = new JSONObject(convertStreamToString( getResources().openRawResource(R.raw.gestures)));
-        	Iterator<String> i = obj.keys();
+        	@SuppressWarnings("unchecked")
+			Iterator<String> i = obj.keys();
         	while( i.hasNext() ) {
         		String key = i.next();
         		mGestures.put(Integer.parseInt(key), obj.getString(key));
@@ -78,69 +88,184 @@ public class SoftKeyboard extends InputMethodService {
     @Override public void onInitializeInterface() {        
     }
     
-    private void addButton(LinearLayout row, String label, Object tag, LayoutParams layout, View.OnTouchListener touched ) {
-    	Button a = new Button(this);
-    	a.setLayoutParams(layout);
-    	a.setText(label);
-    	a.setTag(tag);
-    	a.setOnTouchListener(touched);
-    	row.addView(a);
+    private class MyButton extends Button {
+    	private Drawable originalBackground;
+    	public MyButton(Context context) {
+			super(context);
+			this.originalBackground = getBackground();
+		}
+		public int keyCode;
+    	private int pressed = 0; // this can be -1, 0, or 1; because the UI will sometimes send the up,down messages out of order
+    	public void updateBackground() {
+    		if( pressed == 1 ) {
+    			setBackgroundColor(Color.DKGRAY);
+    		} else {
+    			setBackground(originalBackground);
+    		}
+    	}
+    	public void reset() {
+    		pressed = 0;
+    		updateBackground();
+    	}
+		public void setPressed(boolean p) {
+			if( p ) {
+				pressed = Math.min(1,  pressed + 1);
+			} else {
+				pressed = Math.max(-1, pressed - 1);
+			}
+    		updateBackground();
+		}
+    	
     }
     
+    private class ButtonSet {
+    	@SuppressLint("UseSparseArrays")
+		private HashMap<Integer,MyButton> buttons = new HashMap<Integer,MyButton>();
+    	public int getGesture() {
+    		int gesture = 0;
+    		for( MyButton b : buttons.values() ) {
+    			if( b.pressed == 1 ) {
+    				gesture = gesture | b.keyCode;
+    			}
+    		}
+    		return gesture;
+    	}
+    	public void setPressed(int keyCode, boolean flag) {
+    		buttons.get(keyCode).setPressed(flag);
+    	}
+    	public void add(int keyCode, MyButton button) {
+    		buttons.put(Integer.valueOf(keyCode), button);
+    	}
+    	public void reset() {
+    		for( MyButton b : buttons.values() ) {
+    			b.reset();
+    		}
+    	}
+    }
+    
+    
     private class KeyToucher implements View.OnTouchListener {
-    	public int gesture = 0; // the total combined gesture of all downed keys
     	public int sticky = 0; // the total of the sticky downed keys
     	private boolean hasNewKeys = false;
+    	public ButtonSet buttons = new ButtonSet();
     	
     	private SoftKeyboard kb;
     	public KeyToucher( SoftKeyboard kb ) {
     		this.kb = kb;
     	}
+    	
+    	private int fatFingerButtons(View v, MotionEvent event, boolean pressed) {
+    		int button = (Integer)v.getTag();
+    		buttons.setPressed(button,  pressed);
+			for( int p = 0; p < event.getPointerCount(); p++) {
+				MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
+				event.getPointerCoords(p, coords);
+				Rect finger = new Rect();
+				// we ignore orientation for now, and just treat max(major,minor)^2 as a square bounding box
+				int m = Math.round(Math.max(coords.touchMajor, coords.touchMinor) / 4);
+				finger.left = Math.round(coords.x) - m;
+				finger.right = Math.round(coords.x) + m;
+				finger.top = Math.round(coords.y) - m;
+				finger.bottom = Math.round(coords.y) + m;
+				if( finger.left < 0 && button > 1 ) {
+					buttons.setPressed(button >> 1,  pressed);
+				} else if( finger.right > v.getWidth()
+						&& button != 128
+						&& button != 1024 ) {
+					buttons.setPressed(button << 1, pressed);
+				}
+			}
+			return buttons.getGesture();
+    	}
 
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			Object tag = v.getTag();
-			Integer button = Integer.valueOf(0);
-			if( tag != null )
-				button = (Integer)tag;
-			switch( event.getAction() ){
-			case 0:
+			int action = event.getAction();
+			if( action == MotionEvent.ACTION_MOVE ) return false;
+			
+			int button = (Integer)v.getTag();
+			switch( action ){
+			case MotionEvent.ACTION_DOWN:
+			case MotionEvent.ACTION_POINTER_DOWN:
+				fatFingerButtons(v, event, true);
 				hasNewKeys = true;
-				if( button == SHIFT_KEY )
-					sticky = sticky | SHIFT_KEY;
-				else if( button == NUMSHIFT_KEY )
-					sticky = sticky | NUMSHIFT_KEY;
-				gesture = gesture | button | sticky;
 				break;
-			case 1:
+			case MotionEvent.ACTION_UP:
+			case MotionEvent.ACTION_POINTER_UP:
+				int gesture = fatFingerButtons(v, event, false);
+				Log.d("single gesture", "" + (gesture | sticky));
 				if( hasNewKeys ) {
-					boolean modified = kb.doGesture(gesture);
-					gesture = gesture ^ (gesture & sticky);
+					if( gesture == SHIFT_KEY ) {
+						sticky = sticky ^ SHIFT_KEY;
+						buttons.buttons.get(SHIFT_KEY).setPressed( (sticky & SHIFT_KEY) == SHIFT_KEY );
+					} else if( gesture == NUMSHIFT_KEY ) {
+						sticky = sticky ^ NUMSHIFT_KEY;
+						buttons.buttons.get(NUMSHIFT_KEY).setPressed( (sticky & NUMSHIFT_KEY) == NUMSHIFT_KEY );
+					} else {
+						boolean modified = kb.doGesture(gesture | sticky);
+						if( modified ) {
+							// consume the sticky keys
+							sticky = 0;
+						}
+					}
+				}
+				// consume the released buttons
+				if( action == MotionEvent.ACTION_UP ) {
+					buttons.reset();
 				}
 				hasNewKeys = false;
-				gesture = gesture ^ (gesture & button);
 				break;
 			}
-			Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " gesture: " + gesture);
-			return false;
+			Log.d("onTouch", "button: " + button + " action: " + (event.getAction() == 1 ? "up" : "down") + " sticky: " + sticky + " gesture: " + buttons.getGesture());
+			return true;
+		}
+
+		public void reset() {
+			sticky = 0;
+			hasNewKeys = false;
+			buttons.reset();
 		}
     }
     
+    private int buttonCount = 0;
+    private int rowCount = -1;
+    private void addButton(LinearLayout row, String label, int keyCode, LayoutParams layout, KeyToucher touched ) {
+    	MyButton a = new MyButton(this);
+    	a.keyCode = keyCode;
+    	a.setLayoutParams(layout);
+    	a.setText(label);
+    	a.setTag(Integer.valueOf(keyCode));
+    	a.setOnTouchListener(touched);
+    	touched.buttons.add(keyCode,  a);
+    	row.addView(a);
+    	buttonCount++;
+    }
+    
+    private LinearLayout addRow(LinearLayout base, KeyToucher touched) {
+    	LinearLayout row = new LinearLayout(this);
+    	row.setOnTouchListener(touched);
+    	base.addView(row);
+    	buttonCount = 0;
+    	rowCount++;
+    	return row;
+    }
     @Override public View onCreateInputView() {
+    	
+    	// compute the button sizes
     	int w = this.getMaxWidth();
-    	LinearLayout L = new LinearLayout(this.getBaseContext());
+    	LayoutParams smallKey = new LayoutParams(w/8, w/7);
+    	LayoutParams shiftKey = new LayoutParams(w/4, w/7);
+    	LayoutParams spaceKey = new LayoutParams(w/2, w/7);
+    	
+    	// create the root layout (linear, vertical)
+    	LinearLayout L = new LinearLayout(this);
     	L.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
     	L.setOrientation(LinearLayout.VERTICAL);
     	
-    	KeyToucher toucher = new KeyToucher(this);
-    	LinearLayout row;
-    	
-    	L.addView(row = new LinearLayout(this.getBaseContext()));
-    	
-    	LayoutParams smallKey = new LayoutParams(w/8, LayoutParams.WRAP_CONTENT);
-    	LayoutParams shiftKey = new LayoutParams(w/4, LayoutParams.WRAP_CONTENT);
-    	LayoutParams spaceKey = new LayoutParams(w/2, LayoutParams.WRAP_CONTENT);
-    	
+    	// reset whatever gestures/shifts were in progress last time
+    	toucher.reset();
+
+    	LinearLayout row = addRow(L, toucher);
     	addButton(row, "a", 1, smallKey, toucher);
     	addButton(row, "s", 2, smallKey, toucher);
     	addButton(row, "e", 4, smallKey, toucher);
@@ -150,7 +275,7 @@ public class SoftKeyboard extends InputMethodService {
     	addButton(row, "o", 64, smallKey, toucher);
     	addButton(row, "p", 128, smallKey, toucher);
     	
-    	L.addView(row = new LinearLayout(this.getBaseContext()));
+    	row = addRow(L, toucher);
     	addButton(row, "sh", 256, shiftKey, toucher);
     	addButton(row, "space", 512, spaceKey, toucher);
     	addButton(row, "#sh", 1024, shiftKey, toucher);
@@ -176,7 +301,7 @@ public class SoftKeyboard extends InputMethodService {
         switch (attribute.inputType & InputType.TYPE_MASK_CLASS) {
             case InputType.TYPE_CLASS_NUMBER:
             case InputType.TYPE_CLASS_DATETIME:
-            case InputType.TYPE_CLASS_PHONE: // could auto-complete from contacts
+            case InputType.TYPE_CLASS_PHONE:
             case InputType.TYPE_CLASS_TEXT:
                 
             default:
@@ -189,20 +314,14 @@ public class SoftKeyboard extends InputMethodService {
      */
     @Override public void onFinishInput() {
         super.onFinishInput();
-        
-        // Clear current composing text and candidates.
-        
-        
-        if (mInputView != null) {
-            // mInputView.closing();
-        }
     }
     
     @Override public void onStartInputView(EditorInfo attribute, boolean restarting) {
         super.onStartInputView(attribute, restarting);
     }
     
-    private void doClose() {
+    @SuppressWarnings("unused")
+	private void doClose() {
         requestHideSelf(0);
     }
     private void doBackspace() {
@@ -210,10 +329,12 @@ public class SoftKeyboard extends InputMethodService {
     }
     private boolean doGesture(int gesture) {
     	String value = mGestures.get(gesture, "");
+    	Log.d("doGesture", value);
     	if( value.length() > 0 ) {
-    		if( value == "<Backspace>") {
+    		if( value.equals("<Backspace>") ) {
     			doBackspace();
     		} else {
+    			Log.d("assert", "" + value + " != <Backspace>");
     			getCurrentInputConnection().commitText(value, value.length());
     		}
     		return true;
