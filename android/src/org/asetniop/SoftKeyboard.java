@@ -108,6 +108,7 @@ public class SoftKeyboard extends InputMethodService {
     		updateBackground();
     	}
 		public void setPressed(boolean p) {
+			Log.d("setPressed", "" + this.keyCode + " " + p);
 			if( p ) {
 				pressed = Math.min(1,  pressed + 1);
 			} else {
@@ -131,10 +132,18 @@ public class SoftKeyboard extends InputMethodService {
     		return gesture;
     	}
     	public void setPressed(int keyCode, boolean flag) {
-    		buttons.get(keyCode).setPressed(flag);
+    		try {
+	    		buttons.get(keyCode).setPressed(flag);
+    		} catch( NullPointerException e ) {
+    			Log.d("setPressed", "Invalid keyCode: " + keyCode);
+    		}
     	}
     	public void add(int keyCode, MyButton button) {
-    		buttons.put(Integer.valueOf(keyCode), button);
+	    	try {
+	    		buttons.put(Integer.valueOf(keyCode), button);
+    		} catch( NullPointerException e ) {
+    			Log.d("setPressed", "Invalid keyCode: " + keyCode);
+    		}
     	}
     	public void reset() {
     		for( MyButton b : buttons.values() ) {
@@ -148,6 +157,7 @@ public class SoftKeyboard extends InputMethodService {
     	public int sticky = 0; // the total of the sticky downed keys
     	private boolean hasNewKeys = false;
     	public ButtonSet buttons = new ButtonSet();
+    	public SparseArray<Integer> pointers = new SparseArray<Integer>();
     	
     	private SoftKeyboard kb;
     	public KeyToucher( SoftKeyboard kb ) {
@@ -160,6 +170,7 @@ public class SoftKeyboard extends InputMethodService {
 			for( int p = 0; p < event.getPointerCount(); p++) {
 				MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
 				event.getPointerCoords(p, coords);
+				int pointerId = event.getPointerId(p);
 				Rect finger = new Rect();
 				// we ignore orientation for now, and just treat max(major,minor)^2 as a square bounding box
 				int m = Math.round(Math.max(coords.touchMajor, coords.touchMinor) / 4);
@@ -169,10 +180,12 @@ public class SoftKeyboard extends InputMethodService {
 				finger.bottom = Math.round(coords.y) + m;
 				if( finger.left < 0 && button > 1 ) {
 					buttons.setPressed(button >> 1,  pressed);
+					button = button | (button >> 1);
 				} else if( finger.right > v.getWidth()
 						&& button != 128
 						&& button != 1024 ) {
 					buttons.setPressed(button << 1, pressed);
+					button = button | (button << 1);
 				}
 			}
 			return buttons.getGesture();
@@ -183,6 +196,11 @@ public class SoftKeyboard extends InputMethodService {
 			int action = event.getAction();
 			if( action == MotionEvent.ACTION_MOVE ) return false;
 			
+			// really what should happen is that when a pointer goes down
+			// we write down the pointer id, and the buttons they pushed
+			// so later we can release all those buttons when that pointer id is lifted
+			// no matter the location
+			
 			int button = (Integer)v.getTag();
 			switch( action ){
 			case MotionEvent.ACTION_DOWN:
@@ -192,7 +210,8 @@ public class SoftKeyboard extends InputMethodService {
 				break;
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP:
-				int gesture = fatFingerButtons(v, event, false);
+				int gesture = buttons.getGesture();
+				fatFingerButtons(v, event, false);
 				Log.d("single gesture", "" + (gesture | sticky));
 				if( hasNewKeys ) {
 					if( gesture == SHIFT_KEY ) {
@@ -216,7 +235,7 @@ public class SoftKeyboard extends InputMethodService {
 				hasNewKeys = false;
 				break;
 			}
-			Log.d("onTouch", "button: " + button + " action: " + (event.getAction() == 1 ? "up" : "down") + " sticky: " + sticky + " gesture: " + buttons.getGesture());
+			Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " sticky: " + sticky + " gesture: " + buttons.getGesture());
 			return true;
 		}
 
@@ -334,8 +353,7 @@ public class SoftKeyboard extends InputMethodService {
     		if( value.equals("<Backspace>") ) {
     			doBackspace();
     		} else {
-    			Log.d("assert", "" + value + " != <Backspace>");
-    			getCurrentInputConnection().commitText(value, value.length());
+    			getCurrentInputConnection().commitText(value, 1);
     		}
     		return true;
     	}
