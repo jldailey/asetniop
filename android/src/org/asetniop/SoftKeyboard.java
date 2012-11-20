@@ -36,6 +36,7 @@ import android.inputmethodservice.InputMethodService;
 import android.text.InputType;
 import android.util.Log;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
@@ -79,6 +80,19 @@ public class SoftKeyboard extends InputMethodService {
         } catch( JSONException e ) {
         	Log.e("json-error", e.toString());
         }
+        
+        // we compute some key mappings programmatically
+        // like, all the "a " combos
+        for( int k = 513; k < 1024; k++ ) {
+        	if( mGestures.get(k - 512) != null && mGestures.get(k) == null ) {
+        		mGestures.put(k, mGestures.get(k - 512) + " ");
+        	}
+        }
+        
+        // and all the numbers 1-15
+        for( int k = 1025; k < 1040; k++) {
+        	mGestures.put(k, "" + (k - 1024));
+        }
     }
     
     /**
@@ -96,25 +110,41 @@ public class SoftKeyboard extends InputMethodService {
 		}
 		public int keyCode;
     	private int pressed = 0; // this can be -1, 0, or 1; because the UI will sometimes send the up,down messages out of order
-    	public void updateBackground() {
+    	public void updateBackground(int gesture) {
+    		int fakeGesture = gesture | keyCode;
     		if( pressed == 1 ) {
     			setBackgroundColor(Color.DKGRAY);
     		} else {
     			setBackground(originalBackground);
     		}
+    		String text = mGestures.get(fakeGesture);
+    		if( text == null )
+    			return;
+    		if( text.equals("<Number>") )
+    			text = "num";
+    		if( text.equals("<Backspace>") )
+    			text = "BS";
+    		if( text.equals("<Shift>") )
+    			text = "sh";
+    		if( text.equals(" ") )
+    			text = "sp";
+    		if( text.equals("\t") )
+    			text = "\\t";
+    		if( text.equals("\n") )
+    			text = "\\n";
+    		setText(text);
     	}
     	public void reset() {
     		pressed = 0;
-    		updateBackground();
+    		updateBackground(0);
     	}
 		public void setPressed(boolean p) {
-			Log.d("setPressed", "" + this.keyCode + " " + p);
 			if( p ) {
 				pressed = Math.min(1,  pressed + 1);
 			} else {
 				pressed = Math.max(-1, pressed - 1);
 			}
-    		updateBackground();
+			Log.d("setPressed", "" + this.keyCode + ": " + p + " = " + pressed);
 		}
     	
     }
@@ -122,7 +152,7 @@ public class SoftKeyboard extends InputMethodService {
     private class ButtonSet {
     	@SuppressLint("UseSparseArrays")
 		private HashMap<Integer,MyButton> buttons = new HashMap<Integer,MyButton>();
-    	public int getGesture() {
+    	public int getGesture() { // TODO: we should not re-compute this every time, but update inside setPressed
     		int gesture = 0;
     		for( MyButton b : buttons.values() ) {
     			if( b.pressed == 1 ) {
@@ -137,13 +167,15 @@ public class SoftKeyboard extends InputMethodService {
     		} catch( NullPointerException e ) {
     			Log.d("setPressed", "Invalid keyCode: " + keyCode);
     		}
+    		updateText(getGesture());
+    	}
+    	public void updateText(int gesture) {
+    		for( MyButton b : buttons.values() ) {
+    			b.updateBackground(gesture);
+    		}
     	}
     	public void add(int keyCode, MyButton button) {
-	    	try {
-	    		buttons.put(Integer.valueOf(keyCode), button);
-    		} catch( NullPointerException e ) {
-    			Log.d("setPressed", "Invalid keyCode: " + keyCode);
-    		}
+	    	buttons.put(keyCode, button);
     	}
     	public void reset() {
     		for( MyButton b : buttons.values() ) {
@@ -157,7 +189,7 @@ public class SoftKeyboard extends InputMethodService {
     	public int sticky = 0; // the total of the sticky downed keys
     	private boolean hasNewKeys = false;
     	public ButtonSet buttons = new ButtonSet();
-    	public SparseArray<Integer> pointers = new SparseArray<Integer>();
+    	public SparseIntArray pointers = new SparseIntArray();
     	
     	private SoftKeyboard kb;
     	public KeyToucher( SoftKeyboard kb ) {
@@ -188,7 +220,7 @@ public class SoftKeyboard extends InputMethodService {
 					button = button | (button << 1);
 				}
 			}
-			return buttons.getGesture();
+			return button;
     	}
 
 		@Override
@@ -196,30 +228,38 @@ public class SoftKeyboard extends InputMethodService {
 			int action = event.getAction();
 			if( action == MotionEvent.ACTION_MOVE ) return false;
 			
-			// really what should happen is that when a pointer goes down
+			// what should happen is that when a pointer goes down
 			// we write down the pointer id, and the buttons they pushed
 			// so later we can release all those buttons when that pointer id is lifted
 			// no matter the location
 			
+			// TODO: key-repeats
+			// TODO: handle ACTION_MOVE, so you can refine your touch-point before releasing
+			
 			int button = (Integer)v.getTag();
+			int gesture, p, b, i = 0; // p is a pointer id, b is a bucket of button bits, i is a loop index
+
 			switch( action ){
 			case MotionEvent.ACTION_DOWN:
-			case MotionEvent.ACTION_POINTER_DOWN:
-				fatFingerButtons(v, event, true);
+			case MotionEvent.ACTION_POINTER_DOWN: // primary and secondary pointer events are all the same to us
+				b = fatFingerButtons(v, event, true);
+				gesture = buttons.getGesture();
+				for( p = 0; p < event.getPointerCount(); p++) {
+					Log.d("onTouch", "saving pointerId: " + event.getPointerId(p) + " keys: " + b);
+					pointers.put(event.getPointerId(p), b);
+				}
 				hasNewKeys = true;
 				break;
 			case MotionEvent.ACTION_UP:
-			case MotionEvent.ACTION_POINTER_UP:
-				int gesture = buttons.getGesture();
-				fatFingerButtons(v, event, false);
-				Log.d("single gesture", "" + (gesture | sticky));
+			case MotionEvent.ACTION_POINTER_UP: // primary and secondary pointer events are all the same to us
 				if( hasNewKeys ) {
+					gesture = buttons.getGesture();
 					if( gesture == SHIFT_KEY ) {
 						sticky = sticky ^ SHIFT_KEY;
-						buttons.buttons.get(SHIFT_KEY).setPressed( (sticky & SHIFT_KEY) == SHIFT_KEY );
+						buttons.setPressed( SHIFT_KEY,  (sticky & SHIFT_KEY) == SHIFT_KEY );
 					} else if( gesture == NUMSHIFT_KEY ) {
 						sticky = sticky ^ NUMSHIFT_KEY;
-						buttons.buttons.get(NUMSHIFT_KEY).setPressed( (sticky & NUMSHIFT_KEY) == NUMSHIFT_KEY );
+						buttons.setPressed( NUMSHIFT_KEY, (sticky & NUMSHIFT_KEY) == NUMSHIFT_KEY );
 					} else {
 						boolean modified = kb.doGesture(gesture | sticky);
 						if( modified ) {
@@ -229,8 +269,20 @@ public class SoftKeyboard extends InputMethodService {
 					}
 				}
 				// consume the released buttons
-				if( action == MotionEvent.ACTION_UP ) {
-					buttons.reset();
+				for(p = 0; p < event.getPointerCount(); p++) {
+					int id = event.getPointerId(p);
+					b = pointers.get(id, 0);
+					Log.d("onTouch", "releasing saved pointerId: " + id + " gesture: " + b);
+					if( b == 0 ) continue;
+					// for each button
+					for( i = A_KEY; i <= NUMSHIFT_KEY; i = i << 1 ) {
+						// if this pointer pushed this button originally, release it now
+						if( (b & i) == i ) {
+							Log.d("onTouch", "releasing key: " + i);
+							buttons.setPressed(i, false);
+						}
+					}
+					pointers.delete(id);
 				}
 				hasNewKeys = false;
 				break;
@@ -246,8 +298,6 @@ public class SoftKeyboard extends InputMethodService {
 		}
     }
     
-    private int buttonCount = 0;
-    private int rowCount = -1;
     private void addButton(LinearLayout row, String label, int keyCode, LayoutParams layout, KeyToucher touched ) {
     	MyButton a = new MyButton(this);
     	a.keyCode = keyCode;
@@ -257,24 +307,23 @@ public class SoftKeyboard extends InputMethodService {
     	a.setOnTouchListener(touched);
     	touched.buttons.add(keyCode,  a);
     	row.addView(a);
-    	buttonCount++;
     }
     
     private LinearLayout addRow(LinearLayout base, KeyToucher touched) {
     	LinearLayout row = new LinearLayout(this);
     	row.setOnTouchListener(touched);
     	base.addView(row);
-    	buttonCount = 0;
-    	rowCount++;
     	return row;
     }
     @Override public View onCreateInputView() {
     	
     	// compute the button sizes
     	int w = this.getMaxWidth();
-    	LayoutParams smallKey = new LayoutParams(w/8, w/7);
-    	LayoutParams shiftKey = new LayoutParams(w/4, w/7);
-    	LayoutParams spaceKey = new LayoutParams(w/2, w/7);
+    	int d = 3;
+    	if( w < 1000 ) d = 2;
+    	LayoutParams smallKey = new LayoutParams(w/8, w/(2*d));
+    	LayoutParams shiftKey = new LayoutParams(w/4, w/(4*d));
+    	LayoutParams spaceKey = new LayoutParams(w/2, w/(4*d));
     	
     	// create the root layout (linear, vertical)
     	LinearLayout L = new LinearLayout(this);
@@ -297,7 +346,7 @@ public class SoftKeyboard extends InputMethodService {
     	row = addRow(L, toucher);
     	addButton(row, "sh", 256, shiftKey, toucher);
     	addButton(row, "space", 512, spaceKey, toucher);
-    	addButton(row, "#sh", 1024, shiftKey, toucher);
+    	addButton(row, "num", 1024, shiftKey, toucher);
     	   	
     	return mInputView = L;
     }
