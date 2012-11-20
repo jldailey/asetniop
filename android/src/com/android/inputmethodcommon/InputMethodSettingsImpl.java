@@ -38,8 +38,10 @@ import java.util.List;
 
 /* package private */ class InputMethodSettingsImpl implements InputMethodSettingsInterface {
     private Preference mSubtypeEnablerPreference;
-    private int mInputMethodSettingsCategoryTitleRes;
-    private CharSequence mInputMethodSettingsCategoryTitle;
+    @SuppressWarnings("unused")
+	private int mInputMethodSettingsCategoryTitleRes;
+    @SuppressWarnings("unused")
+	private CharSequence mInputMethodSettingsCategoryTitle;
     private int mSubtypeEnablerTitleRes;
     private CharSequence mSubtypeEnablerTitle;
     private int mSubtypeEnablerIconRes;
