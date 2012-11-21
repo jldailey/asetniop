@@ -138,13 +138,13 @@ public class SoftKeyboard extends InputMethodService {
     		pressed = 0;
     		updateBackground(0);
     	}
-		public void setPressed(boolean p) {
+		public int press(boolean p) {
 			if( p ) {
 				pressed = Math.min(1,  pressed + 1);
 			} else {
 				pressed = Math.max(-1, pressed - 1);
 			}
-			Log.d("setPressed", "" + this.keyCode + ": " + p + " = " + pressed);
+			return pressed;
 		}
     	
     }
@@ -152,24 +152,21 @@ public class SoftKeyboard extends InputMethodService {
     private class ButtonSet {
     	@SuppressLint("UseSparseArrays")
 		private HashMap<Integer,MyButton> buttons = new HashMap<Integer,MyButton>();
-    	public int getGesture() { // TODO: we should not re-compute this every time, but update inside setPressed
-    		int gesture = 0;
-    		for( MyButton b : buttons.values() ) {
-    			if( b.pressed == 1 ) {
-    				gesture = gesture | b.keyCode;
-    			}
-    		}
-    		return gesture;
-    	}
+    	public int gesture = 0;
     	public void setPressed(int keyCode, boolean flag) {
     		try {
-	    		buttons.get(keyCode).setPressed(flag);
+	    		int pressed = buttons.get(keyCode).press(flag);
+	    		if( pressed == 1 ) {
+	    			gesture = gesture | keyCode;
+	    		} else {
+	    			gesture = gesture ^ ( gesture & keyCode );
+	    		}
     		} catch( NullPointerException e ) {
     			Log.d("setPressed", "Invalid keyCode: " + keyCode);
     		}
-    		updateText(getGesture());
+    		refresh(gesture);
     	}
-    	public void updateText(int gesture) {
+    	public void refresh(int gesture) {
     		for( MyButton b : buttons.values() ) {
     			b.updateBackground(gesture);
     		}
@@ -223,7 +220,7 @@ public class SoftKeyboard extends InputMethodService {
     		buttons.setPressed(button,  pressed);
 			Rect finger = new Rect();
 			// we ignore orientation for now, and just treat max(major,minor)^2 as a square bounding box
-			int m = Math.round(Math.max(coords.touchMajor, coords.touchMinor) / 4);
+			int m = Math.round(Math.max(coords.touchMajor, coords.touchMinor) / 6);
 			finger.left = Math.round(coords.x) - m;
 			finger.right = Math.round(coords.x) + m;
 			finger.top = Math.round(coords.y) - m;
@@ -270,7 +267,7 @@ public class SoftKeyboard extends InputMethodService {
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP: // primary and secondary pointer events are all the same to us
 				if( hasNewKeys ) {
-					gesture = buttons.getGesture();
+					gesture = buttons.gesture;
 					if( gesture == SHIFT_KEY ) {
 						sticky = sticky ^ SHIFT_KEY;
 						buttons.setPressed( SHIFT_KEY,  (sticky & SHIFT_KEY) == SHIFT_KEY );
@@ -293,7 +290,7 @@ public class SoftKeyboard extends InputMethodService {
 				hasNewKeys = false;
 				break;
 			}
-			Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " sticky: " + sticky + " gesture: " + buttons.getGesture());
+			Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " sticky: " + sticky + " gesture: " + buttons.gesture);
 			return true;
 		}
 
