@@ -184,41 +184,58 @@ public class SoftKeyboard extends InputMethodService {
     	}
     }
     
+    private class PointerSet {
+    	private SparseIntArray pointers = new SparseIntArray();
+    	public int get(int key) { // get the buttons pressed by this pointer
+    		return pointers.get(key, 0);
+    	}
+    	public void set(int key, int value) { // set the buttons pressed by this pointer
+    		pointers.put(key, value);
+    	}
+    	public void release(int pointerId, ButtonSet buttons) {
+    		int b = pointers.get(pointerId, 0);
+    		if(b == 0) return;
+    		for( int i = A_KEY; i <= NUMSHIFT_KEY; i = i << 1 ) {
+    			// if this pointer pushed this button originally, release it now
+    			if( (b & i) == i ) {
+    				Log.d("PointerSet", "releasing key: " + i);
+    				buttons.setPressed(i, false);
+    			}
+    		}
+    		pointers.delete(pointerId);
+    	}
+    }
+    
     
     private class KeyToucher implements View.OnTouchListener {
     	public int sticky = 0; // the total of the sticky downed keys
     	private boolean hasNewKeys = false;
     	public ButtonSet buttons = new ButtonSet();
-    	public SparseIntArray pointers = new SparseIntArray();
+    	public PointerSet pointers = new PointerSet();
     	
     	private SoftKeyboard kb;
     	public KeyToucher( SoftKeyboard kb ) {
     		this.kb = kb;
     	}
     	
-    	private int fatFingerButtons(View v, MotionEvent event, boolean pressed) {
+    	private int fatFingerPress(View v, MotionEvent.PointerCoords coords, boolean pressed) {
     		int button = (Integer)v.getTag();
     		buttons.setPressed(button,  pressed);
-			for( int p = 0; p < event.getPointerCount(); p++) {
-				MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
-				event.getPointerCoords(p, coords);
-				int pointerId = event.getPointerId(p);
-				Rect finger = new Rect();
-				// we ignore orientation for now, and just treat max(major,minor)^2 as a square bounding box
-				int m = Math.round(Math.max(coords.touchMajor, coords.touchMinor) / 4);
-				finger.left = Math.round(coords.x) - m;
-				finger.right = Math.round(coords.x) + m;
-				finger.top = Math.round(coords.y) - m;
-				finger.bottom = Math.round(coords.y) + m;
-				if( finger.left < 0 && button > 1 ) {
-					buttons.setPressed(button >> 1,  pressed);
-					button = button | (button >> 1);
-				} else if( finger.right > v.getWidth()
-						&& button != 128
-						&& button != 1024 ) {
-					buttons.setPressed(button << 1, pressed);
-					button = button | (button << 1);
-				}
+			Rect finger = new Rect();
+			// we ignore orientation for now, and just treat max(major,minor)^2 as a square bounding box
+			int m = Math.round(Math.max(coords.touchMajor, coords.touchMinor) / 4);
+			finger.left = Math.round(coords.x) - m;
+			finger.right = Math.round(coords.x) + m;
+			finger.top = Math.round(coords.y) - m;
+			finger.bottom = Math.round(coords.y) + m;
+			if( finger.left < 0 && button > 1 ) {
+				buttons.setPressed(button >> 1,  pressed);
+				button = button | (button >> 1);
+			} else if( finger.right > v.getWidth()
+					&& button != 128
+					&& button != 1024 ) {
+				buttons.setPressed(button << 1, pressed);
+				button = button | (button << 1);
 			}
 			return button;
     	}
@@ -226,7 +243,6 @@ public class SoftKeyboard extends InputMethodService {
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
 			int action = event.getAction();
-			if( action == MotionEvent.ACTION_MOVE ) return false;
 			
 			// what should happen is that when a pointer goes down
 			// we write down the pointer id, and the buttons they pushed
@@ -234,21 +250,22 @@ public class SoftKeyboard extends InputMethodService {
 			// no matter the location
 			
 			// TODO: key-repeats
-			// TODO: handle ACTION_MOVE, so you can refine your touch-point before releasing
 			
 			int button = (Integer)v.getTag();
-			int gesture, p, b, i = 0; // p is a pointer id, b is a bucket of button bits, i is a loop index
+			int gesture, p, b, i = 0; // p is a pointer id, b is a bucket of button bits, i is an id or index
+			MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
 
 			switch( action ){
 			case MotionEvent.ACTION_DOWN:
 			case MotionEvent.ACTION_POINTER_DOWN: // primary and secondary pointer events are all the same to us
-				b = fatFingerButtons(v, event, true);
-				gesture = buttons.getGesture();
-				for( p = 0; p < event.getPointerCount(); p++) {
-					Log.d("onTouch", "saving pointerId: " + event.getPointerId(p) + " keys: " + b);
-					pointers.put(event.getPointerId(p), b);
-				}
 				hasNewKeys = true;
+			case MotionEvent.ACTION_MOVE:
+				for( p = 0; p < event.getPointerCount(); p++) {
+					i = event.getPointerId(p);
+					pointers.release(i, buttons);
+					event.getPointerCoords(p, coords);
+					pointers.set(i, fatFingerPress(v, coords, true));
+				}
 				break;
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP: // primary and secondary pointer events are all the same to us
@@ -271,18 +288,7 @@ public class SoftKeyboard extends InputMethodService {
 				// consume the released buttons
 				for(p = 0; p < event.getPointerCount(); p++) {
 					int id = event.getPointerId(p);
-					b = pointers.get(id, 0);
-					Log.d("onTouch", "releasing saved pointerId: " + id + " gesture: " + b);
-					if( b == 0 ) continue;
-					// for each button
-					for( i = A_KEY; i <= NUMSHIFT_KEY; i = i << 1 ) {
-						// if this pointer pushed this button originally, release it now
-						if( (b & i) == i ) {
-							Log.d("onTouch", "releasing key: " + i);
-							buttons.setPressed(i, false);
-						}
-					}
-					pointers.delete(id);
+					pointers.release(id, buttons);
 				}
 				hasNewKeys = false;
 				break;
