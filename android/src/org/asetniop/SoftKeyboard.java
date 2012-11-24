@@ -83,7 +83,6 @@ public class SoftKeyboard extends InputMethodService {
 		put(I_KEY + LEFT_EDGE, N_KEY);
 		put(O_KEY + LEFT_EDGE, I_KEY);
 		put(P_KEY + LEFT_EDGE, O_KEY);
-		Log.d("fatFingerEdges", "P_KEY + LEFT_EDGE: " + (P_KEY+LEFT_EDGE) + " == " + O_KEY);
 		put(A_KEY + BOTTOM_EDGE, SHIFT_KEY);
 		put(S_KEY + BOTTOM_EDGE, SHIFT_KEY);
 		put(E_KEY + BOTTOM_EDGE, SPACE_KEY);
@@ -130,6 +129,14 @@ public class SoftKeyboard extends InputMethodService {
 		put("<LessThan>", "<");
 		put("<GreaterThan>", ">");
 		put(" ", "space");
+		put("a", "a");
+		put("s", "s");
+		put("e", "e");
+		put("t", "t");
+		put("n", "n");
+		put("i", "i");
+		put("o", "o");
+		put("p", "p");
 	}};
 
 	private KeyToucher toucher;
@@ -144,7 +151,6 @@ public class SoftKeyboard extends InputMethodService {
 			while( i.hasNext() ) {
 				String key = i.next();
 				mGestures.put(Integer.parseInt(key), obj.getString(key));
-				Log.d("gesture", "key: " + key + " value: " + obj.getString(key));
 			}
 		} catch( JSONException e ) {
 			Log.e("json-error", e.toString());
@@ -157,8 +163,7 @@ public class SoftKeyboard extends InputMethodService {
 	 * This is the point where you can do all of your UI initialization.  It
 	 * is called after creation and any configuration change.
 	 */
-	@Override public void onInitializeInterface() {
-	}
+	@Override public void onInitializeInterface() { }
 
 	private class MyButton extends Button {
 		private Drawable originalBackground;
@@ -167,15 +172,16 @@ public class SoftKeyboard extends InputMethodService {
 			this.originalBackground = getBackground();
 		}
 		public int keyCode;
-		public boolean isSticky = false;
 		private int status = 0; // this can be -1, 0, or 1; because the UI will sometimes send the up,down messages out of order
-		public void updateBackground(int gesture) {
-			int fakeGesture = gesture | keyCode;
+		public void updateBackground() {
 			if( status == 1 ) {
 				setBackgroundColor(Color.DKGRAY);
 			} else {
 				setBackground(originalBackground);
 			}
+		}
+		public void updateText(int gesture) {
+			int fakeGesture = gesture | keyCode;
 			String text = mGestures.get(fakeGesture);
 			if( text == null )
 				return;
@@ -186,20 +192,19 @@ public class SoftKeyboard extends InputMethodService {
 		}
 		public void reset() {
 			status = 0;
-			updateBackground(0);
+			updateBackground();
+			updateText(0);
 		}
 		public int press(boolean p) {
 			if( p ) {
-				status = Math.min(1,  status + 1);
-			} else if( ! (isSticky && (status == 1)) ) { // sticky keys don't release, you have to .reset() them
-				status = Math.max(-1, status - 1);
+				status = 1; // Math.min(1,  status + 1);
 			} else {
-				Log.d("Button.press", "refusing to release a sticky key: " + keyCode);
+				status = 0; // Math.max(-1, status - 1);
 			}
 			return status;
 		}
 		public String toString() {
-			return "{MyButton keyCode:"+keyCode+" isSticky:" + isSticky + " status: " + status + "}";
+			return "{MyButton keyCode:"+keyCode + " status: " + status + "}";
 		}
 	}
 
@@ -207,6 +212,7 @@ public class SoftKeyboard extends InputMethodService {
 		@SuppressLint("UseSparseArrays")
 		private HashMap<Integer,MyButton> buttons = new HashMap<Integer,MyButton>();
 		public int gesture = 0;
+		public int sticky = 0;
 		public void setPressed(int keyCode, boolean flag) {
 			MyButton b = buttons.get(keyCode);
 			if( b == null ) return;
@@ -217,23 +223,30 @@ public class SoftKeyboard extends InputMethodService {
 				Log.d("ButtonSet.setPressed", "released: " + b);
 				gesture = gesture ^ ( gesture & keyCode );
 			}
-			refresh(gesture);
+			refresh(gesture | sticky);
 		}
 		public void refresh(int gesture) {
 			for( MyButton b : buttons.values() ) {
-				b.updateBackground(gesture);
+				b.updateBackground();
+				b.updateText(gesture);
 			}
+		}
+		public void stick(int keyCode) {
+			MyButton b = buttons.get(keyCode);
+			if( b == null ) return;
+			b.press(true);
+			sticky = sticky | keyCode;
+			refresh(gesture);
+		}
+		public void unstick(int keyCode) {
+			MyButton b = buttons.get(keyCode);
+			if( b == null ) return;
+			b.press(false);
+			sticky = sticky ^ ( sticky & keyCode );
+			refresh(gesture);
 		}
 		public void add(MyButton button) {
 			buttons.put(button.keyCode, button);
-		}
-		public void unstick() {
-			for( MyButton b : buttons.values() ) {
-				if( b.isSticky ) {
-					b.reset();
-					gesture = gesture ^ ( gesture & b.keyCode );
-				}
-			}
 		}
 		public void reset() {
 			gesture = 0;
@@ -346,10 +359,14 @@ public class SoftKeyboard extends InputMethodService {
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP: // primary and secondary pointer events are all the same to us
 				if( hasNewKeys ) {
-					boolean modified = kb.doGesture(buttons.gesture);
-					if( modified ) {
-						// consume the sticky keys
-						buttons.unstick();
+					if( buttons.gesture == SHIFT_KEY ) {
+						buttons.stick(SHIFT_KEY);
+					} else {
+						boolean modified = kb.doGesture(buttons.gesture | buttons.sticky);
+						if( modified ) {
+							// consume the sticky keys
+							buttons.unstick(SHIFT_KEY);
+						}
 					}
 				}
 				// consume the released buttons
@@ -370,9 +387,8 @@ public class SoftKeyboard extends InputMethodService {
 		}
 	}
 
-	private void addButton(LinearLayout row, int keyCode, LayoutParams layout, boolean sticky ) {
+	private void addButton(LinearLayout row, int keyCode, LayoutParams layout) {
 		MyButton b = new MyButton(this);
-		b.isSticky = sticky;
 		b.keyCode = keyCode;
 		b.setLayoutParams(layout);
 		b.setText(mLabels.get(mGestures.get(keyCode)));
@@ -388,6 +404,7 @@ public class SoftKeyboard extends InputMethodService {
 		base.addView(row);
 		return row;
 	}
+	
 	@Override public View onCreateInputView() {
 
 		// compute the button sizes
@@ -407,19 +424,19 @@ public class SoftKeyboard extends InputMethodService {
 		toucher.reset();
 
 		LinearLayout row = addRow(L);
-		addButton(row, A_KEY, smallKey, false);
-		addButton(row, S_KEY, smallKey, false);
-		addButton(row, E_KEY, smallKey, false);
-		addButton(row, T_KEY, smallKey, false);
-		addButton(row, N_KEY, smallKey, false);
-		addButton(row, I_KEY, smallKey, false);
-		addButton(row, O_KEY, smallKey, false);
-		addButton(row, P_KEY, smallKey, false);
+		addButton(row, A_KEY, smallKey);
+		addButton(row, S_KEY, smallKey);
+		addButton(row, E_KEY, smallKey);
+		addButton(row, T_KEY, smallKey);
+		addButton(row, N_KEY, smallKey);
+		addButton(row, I_KEY, smallKey);
+		addButton(row, O_KEY, smallKey);
+		addButton(row, P_KEY, smallKey);
 
 		row = addRow(L);
-		addButton(row, SHIFT_KEY, shiftKey, true);
-		addButton(row, SPACE_KEY, spaceKey, false);
-		addButton(row, NUMSHIFT_KEY, shiftKey, true);
+		addButton(row, SHIFT_KEY, shiftKey);
+		addButton(row, SPACE_KEY, spaceKey);
+		addButton(row, NUMSHIFT_KEY, shiftKey);
 
 		return L;
 	}
