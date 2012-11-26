@@ -3,3 +3,4 @@ node_modules
 stage
 android/bin
 android/gen
+.DS_Store
