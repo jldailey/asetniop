@@ -53,6 +53,7 @@ public class SoftKeyboard extends InputMethodService {
 	static final int SHIFT_KEY = 1 << 8;
 	static final int SPACE_KEY = 1 << 9;
 	static final int NUMSHIFT_KEY = 1 << 10;
+	static final int STICKY_KEYS = SHIFT_KEY | NUMSHIFT_KEY;
 
 	static final int TOP_LEFT_EDGE = 1 << 11;
 	static final int TOP_RIGHT_EDGE = 1 << 12;
@@ -156,7 +157,7 @@ public class SoftKeyboard extends InputMethodService {
 			Log.e("json-error", e.toString());
 		}
 
-	
+
 	}
 
 	/**
@@ -183,12 +184,10 @@ public class SoftKeyboard extends InputMethodService {
 		public void updateText(int gesture) {
 			int fakeGesture = gesture | keyCode;
 			String text = mGestures.get(fakeGesture);
-			if( text == null )
-				return;
+			if( text == null ) text = "";
 			String label = mLabels.get(text);
-			if( label != null )
-				text = label;
-			setText(text);
+			if( label == null ) label = text;
+			setText(label);
 		}
 		public void reset() {
 			status = 0;
@@ -217,33 +216,27 @@ public class SoftKeyboard extends InputMethodService {
 			MyButton b = buttons.get(keyCode);
 			if( b == null ) return;
 			if( b.press(flag) == 1 ) {
-				Log.d("ButtonSet.setPressed", "pressed: " + b);
 				gesture = gesture | keyCode;
 			} else {
-				Log.d("ButtonSet.setPressed", "released: " + b);
 				gesture = gesture ^ ( gesture & keyCode );
 			}
 			refresh(gesture | sticky);
 		}
-		public void refresh(int gesture) {
+		public void refresh(int g) {
 			for( MyButton b : buttons.values() ) {
 				b.updateBackground();
-				b.updateText(gesture);
+				b.updateText(g);
 			}
 		}
 		public void stick(int keyCode) {
-			MyButton b = buttons.get(keyCode);
-			if( b == null ) return;
-			b.press(true);
 			sticky = sticky | keyCode;
-			refresh(gesture);
+			setPressed(keyCode, true);
+			refresh(gesture | sticky);
 		}
 		public void unstick(int keyCode) {
-			MyButton b = buttons.get(keyCode);
-			if( b == null ) return;
-			b.press(false);
 			sticky = sticky ^ ( sticky & keyCode );
-			refresh(gesture);
+			setPressed(keyCode, false);
+			refresh(gesture | sticky);
 		}
 		public void add(MyButton button) {
 			buttons.put(button.keyCode, button);
@@ -264,13 +257,17 @@ public class SoftKeyboard extends InputMethodService {
 		public void release(int pointerId, ButtonSet buttons) {
 			// b is the buttons pushed by this pointer
 			int b = pointers.get(pointerId, 0);
-			// if there were no buttons pressed, do nothing
+			// if there are no buttons to release, do nothing
 			if( b == 0 ) return;
-			// for each button
+			// for each button in the system
 			for( int i = A_KEY; i <= NUMSHIFT_KEY; i = i << 1 ) {
-				// if this pointer pushed this button originally, release it now
+				// if this pointer pushed this button
 				if( (b & i) == i ) {
-					buttons.setPressed(i, false);
+					// and it isn't currently stuck down
+					if( ! ((buttons.sticky & i) == i) ) {
+						// release it
+						buttons.setPressed(i, false);
+					}
 				}
 			}
 			// clear the pointer from the set
@@ -295,7 +292,7 @@ public class SoftKeyboard extends InputMethodService {
 			// the extra button we may spill-over onto with our fat fingers
 			int button2 = 0;
 
-			// first, find the finger 
+			// first, find the finger
 			Rect finger = new Rect();
 			// we ignore orientation for now, and just treat max(major,minor)^2 as a square bounding box
 			int m = Math.round(Math.max(coords.touchMajor, coords.touchMinor) / 6); // divide down so we get a centered box, smaller than the real hit box
@@ -355,25 +352,30 @@ public class SoftKeyboard extends InputMethodService {
 					event.getPointerCoords(p, coords);
 					pointers.set(i, fatFingerPress(v, coords, true));
 				}
+				composeGesture(buttons.gesture | buttons.sticky);
 				break;
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP: // primary and secondary pointer events are all the same to us
 				if( hasNewKeys ) {
-					if( buttons.gesture == SHIFT_KEY ) {
-						buttons.stick(SHIFT_KEY);
+					if( (buttons.gesture & STICKY_KEYS) == buttons.gesture ) { // if the gesture is all sticky keys
+						if( buttons.gesture == buttons.sticky ) { // if it was already stuck
+							buttons.unstick(buttons.gesture);
+						} else {
+							buttons.stick(buttons.gesture);
+						}
 					} else {
 						boolean modified = kb.doGesture(buttons.gesture | buttons.sticky);
 						if( modified ) {
 							// consume the sticky keys
-							buttons.unstick(SHIFT_KEY);
+							buttons.unstick(buttons.sticky);
 						}
 					}
 				}
 				// consume the released buttons
 				for(p = 0; p < event.getPointerCount(); p++) {
-					int id = event.getPointerId(p);
-					pointers.release(id, buttons);
+					pointers.release(event.getPointerId(p), buttons);
 				}
+				composeGesture(0);
 				hasNewKeys = false;
 				break;
 			}
@@ -404,7 +406,7 @@ public class SoftKeyboard extends InputMethodService {
 		base.addView(row);
 		return row;
 	}
-	
+
 	@Override public View onCreateInputView() {
 
 		// compute the button sizes
@@ -476,6 +478,14 @@ public class SoftKeyboard extends InputMethodService {
 
 	@Override public void onStartInputView(EditorInfo attribute, boolean restarting) {
 		super.onStartInputView(attribute, restarting);
+	}
+
+	private void composeGesture(int gesture) {
+		String value = mGestures.get(gesture, "");
+		String output = mOutputs.get(value);
+		if( output == null )
+			output = value;
+		getCurrentInputConnection().setComposingText(output, 1);
 	}
 
 	private boolean doGesture(int gesture) {
