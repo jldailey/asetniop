@@ -20,11 +20,9 @@
 <!-- The attributes in this XML file provide configuration information -->
 <!-- for the Search Manager. -->
 
-<input-method xmlns:android="http://schemas.android.com/apk/res/android"
-        android:settingsActivity="org.asetniop.ImePreferences"
->
+<input-method xmlns:android="http://schemas.android.com/apk/res/android">
     <subtype
-        android:label="@string/label_subtype_generic"
+        android:label="US"
         android:imeSubtypeLocale="en_US"
         android:imeSubtypeMode="keyboard" />
 </input-method>
