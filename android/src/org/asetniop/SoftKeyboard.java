@@ -137,21 +137,21 @@ public class SoftKeyboard extends InputMethodService {
 		put("p", "p");
 	}};
 
-	public String getLabel(int chord) {
+	public static String getLabel(int chord) {
 		String s = getGesture(chord);
 		String t = mLabels.get(s);
 		if( t == null ) t = s;
 		return t;
 	}
 
-	public String getOutput(int chord) {
+	public static String getOutput(int chord) {
 		String s = getGesture(chord);
 		String t = mOutputs.get(s);
 		if( t == null ) t = s;
 		return t;
 	}
 
-	public String getGesture(int chord) {
+	public static String getGesture(int chord) {
 		return mChords.get(chord, "");
 	}
 

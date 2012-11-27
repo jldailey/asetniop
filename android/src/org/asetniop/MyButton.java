@@ -21,8 +21,7 @@ class MyButton extends Button {
 		}
 	}
 	public void updateText(int chord) {
-		int fakeGesture = chord | keyCode;
-		setText(SoftKeyboard.getLabel(chord));
+		setText(SoftKeyboard.getLabel(chord | this.keyCode));
 	}
 	public void reset() {
 		status = 0;
