@@ -24,11 +24,7 @@ import org.json.JSONObject;
 
 import com.example.android.softkeyboard.R;
 
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.graphics.Color;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.inputmethodservice.InputMethodService;
 import android.text.InputType;
 import android.util.Log;
@@ -95,8 +91,8 @@ public class SoftKeyboard extends InputMethodService {
 	}};
 
 	// maps combinations of the key bits to string outputs
-	// we read these from res/raw/gestures.json
-	private static SparseArray<String> mGestures = new SparseArray<String>();
+	// we read these from res/raw/chords.json
+	private static SparseArray<String> mChords = new SparseArray<String>();
 
 	private static HashMap<String, String> mOutputs = new HashMap<String, String> () {
 		private static final long serialVersionUID = 1L;
@@ -114,6 +110,7 @@ public class SoftKeyboard extends InputMethodService {
 		put("<LessThan>", "<"); // because eclipse is _re_tar_ded_ about JSON files
 		put("<GreaterThan>", ">");
 	}};
+
 	private static HashMap<String, String> mLabels = new HashMap<String, String> () {
 		private static final long serialVersionUID = 1L;
 	{
@@ -140,24 +137,40 @@ public class SoftKeyboard extends InputMethodService {
 		put("p", "p");
 	}};
 
+	public static String getLabel(int chord) {
+		String s = getGesture(chord);
+		String t = mLabels.get(s);
+		if( t == null ) t = s;
+		return t;
+	}
+
+	public static String getOutput(int chord) {
+		String s = getGesture(chord);
+		String t = mOutputs.get(s);
+		if( t == null ) t = s;
+		return t;
+	}
+
+	public static String getGesture(int chord) {
+		return mChords.get(chord, "");
+	}
+
 	private KeyToucher toucher;
 
 	@Override public void onCreate() {
 		super.onCreate();
 		toucher = new KeyToucher(this);
 		try {
-			JSONObject obj = new JSONObject(convertStreamToString( getResources().openRawResource(R.raw.gestures)));
+			JSONObject obj = new JSONObject(convertStreamToString(getResources().openRawResource(R.raw.chords)));
 			@SuppressWarnings("unchecked")
 			Iterator<String> i = obj.keys();
 			while( i.hasNext() ) {
 				String key = i.next();
-				mGestures.put(Integer.parseInt(key), obj.getString(key));
+				mChords.put(Integer.parseInt(key), obj.getString(key));
 			}
 		} catch( JSONException e ) {
 			Log.e("json-error", e.toString());
 		}
-
-
 	}
 
 	/**
@@ -165,116 +178,6 @@ public class SoftKeyboard extends InputMethodService {
 	 * is called after creation and any configuration change.
 	 */
 	@Override public void onInitializeInterface() { }
-
-	private class MyButton extends Button {
-		private Drawable originalBackground;
-		public MyButton(Context context) {
-			super(context);
-			this.originalBackground = getBackground();
-		}
-		public int keyCode;
-		private int status = 0; // this can be -1, 0, or 1; because the UI will sometimes send the up,down messages out of order
-		public void updateBackground() {
-			if( status == 1 ) {
-				setBackgroundColor(Color.DKGRAY);
-			} else {
-				setBackground(originalBackground);
-			}
-		}
-		public void updateText(int gesture) {
-			int fakeGesture = gesture | keyCode;
-			String text = mGestures.get(fakeGesture);
-			if( text == null ) text = "";
-			String label = mLabels.get(text);
-			if( label == null ) label = text;
-			setText(label);
-		}
-		public void reset() {
-			status = 0;
-			updateBackground();
-			updateText(0);
-		}
-		public int press(boolean p) {
-			if( p ) {
-				status = 1; // Math.min(1,  status + 1);
-			} else {
-				status = 0; // Math.max(-1, status - 1);
-			}
-			return status;
-		}
-		public String toString() {
-			return "{MyButton keyCode:"+keyCode + " status: " + status + "}";
-		}
-	}
-
-	private class ButtonSet {
-		@SuppressLint("UseSparseArrays")
-		private HashMap<Integer,MyButton> buttons = new HashMap<Integer,MyButton>();
-		public int gesture = 0;
-		public int sticky = 0;
-		public void setPressed(int keyCode, boolean flag) {
-			MyButton b = buttons.get(keyCode);
-			if( b == null ) return;
-			if( b.press(flag) == 1 ) {
-				gesture = gesture | keyCode;
-			} else {
-				gesture = gesture ^ ( gesture & keyCode );
-			}
-			refresh(gesture | sticky);
-		}
-		public void refresh(int g) {
-			for( MyButton b : buttons.values() ) {
-				b.updateBackground();
-				b.updateText(g);
-			}
-		}
-		public void stick(int keyCode) {
-			sticky = sticky | keyCode;
-			setPressed(keyCode, true);
-			refresh(gesture | sticky);
-		}
-		public void unstick(int keyCode) {
-			sticky = sticky ^ ( sticky & keyCode );
-			setPressed(keyCode, false);
-			refresh(gesture | sticky);
-		}
-		public void add(MyButton button) {
-			buttons.put(button.keyCode, button);
-		}
-		public void reset() {
-			gesture = 0;
-			for( MyButton b : buttons.values() ) {
-				b.reset();
-			}
-		}
-	}
-
-	private class PointerSet {
-		private SparseIntArray pointers = new SparseIntArray();
-		public void set(int pointerId, int value) { // set the buttons pressed by this pointer
-			pointers.put(pointerId, value);
-		}
-		public void release(int pointerId, ButtonSet buttons) {
-			// b is the buttons pushed by this pointer
-			int b = pointers.get(pointerId, 0);
-			// if there are no buttons to release, do nothing
-			if( b == 0 ) return;
-			// for each button in the system
-			for( int i = A_KEY; i <= NUMSHIFT_KEY; i = i << 1 ) {
-				// if this pointer pushed this button
-				if( (b & i) == i ) {
-					// and it isn't currently stuck down
-					if( ! ((buttons.sticky & i) == i) ) {
-						// release it
-						buttons.setPressed(i, false);
-					}
-				}
-			}
-			// clear the pointer from the set
-			pointers.delete(pointerId);
-		}
-	}
-
 
 	private class KeyToucher implements View.OnTouchListener {
 		private boolean hasNewKeys = false;
@@ -352,19 +255,19 @@ public class SoftKeyboard extends InputMethodService {
 					event.getPointerCoords(p, coords);
 					pointers.set(i, fatFingerPress(v, coords, true));
 				}
-				composeGesture(buttons.gesture | buttons.sticky);
+				composeChord(buttons.chord | buttons.sticky);
 				break;
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP: // primary and secondary pointer events are all the same to us
 				if( hasNewKeys ) {
-					if( (buttons.gesture & STICKY_KEYS) == buttons.gesture ) { // if the gesture is all sticky keys
-						if( buttons.gesture == buttons.sticky ) { // if it was already stuck
-							buttons.unstick(buttons.gesture);
+					if( (buttons.chord & STICKY_KEYS) == buttons.chord ) { // if the chord is all sticky keys
+						if( buttons.chord == buttons.sticky ) { // if it was already stuck
+							buttons.unstick(buttons.chord);
 						} else {
-							buttons.stick(buttons.gesture);
+							buttons.stick(buttons.chord);
 						}
 					} else {
-						boolean modified = kb.doGesture(buttons.gesture | buttons.sticky);
+						boolean modified = kb.commitChord(buttons.chord | buttons.sticky);
 						if( modified ) {
 							// consume the sticky keys
 							buttons.unstick(buttons.sticky);
@@ -375,11 +278,11 @@ public class SoftKeyboard extends InputMethodService {
 				for(p = 0; p < event.getPointerCount(); p++) {
 					pointers.release(event.getPointerId(p), buttons);
 				}
-				composeGesture(0);
+				composeChord(0);
 				hasNewKeys = false;
 				break;
 			}
-			Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " gesture: " + buttons.gesture);
+			Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " chord: " + buttons.chord);
 			return true;
 		}
 
@@ -393,7 +296,7 @@ public class SoftKeyboard extends InputMethodService {
 		MyButton b = new MyButton(this);
 		b.keyCode = keyCode;
 		b.setLayoutParams(layout);
-		b.setText(mLabels.get(mGestures.get(keyCode)));
+		b.setText(mLabels.get(mChords.get(keyCode)));
 		b.setTag(Integer.valueOf(keyCode));
 		b.setOnTouchListener(this.toucher);
 		toucher.buttons.add(b);
@@ -422,7 +325,7 @@ public class SoftKeyboard extends InputMethodService {
 		L.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 		L.setOrientation(LinearLayout.VERTICAL);
 
-		// reset whatever gestures/shifts were in progress last time
+		// reset whatever chords/shifts were in progress last time
 		toucher.reset();
 
 		LinearLayout row = addRow(L);
@@ -443,17 +346,12 @@ public class SoftKeyboard extends InputMethodService {
 		return L;
 	}
 
-	/**
-	 * This is the main point where we do our initialization of the input method
-	 * to begin operating on an application.  At this point we have been
-	 * bound to the client, and are now receiving all of the detailed information
-	 * about the target of our edits.
-	 */
 	@Override public void onStartInput(EditorInfo attribute, boolean restarting) {
 		super.onStartInput(attribute, restarting);
 
 		// Reset our state.  We want to do this even if restarting, because
 		// the underlying state of the text editor could have changed in any way.
+		toucher.reset();
 
 
 		// We are now going to initialize our state based on the type of
@@ -468,29 +366,24 @@ public class SoftKeyboard extends InputMethodService {
 		}
 	}
 
-	/**
-	 * This is called when the user is done editing a field.  We can use
-	 * this to reset our state.
-	 */
 	@Override public void onFinishInput() {
 		super.onFinishInput();
+		toucher.reset();
 	}
 
 	@Override public void onStartInputView(EditorInfo attribute, boolean restarting) {
 		super.onStartInputView(attribute, restarting);
+		toucher.reset();
 	}
 
-	private void composeGesture(int gesture) {
-		String value = mGestures.get(gesture, "");
-		String output = mOutputs.get(value);
-		if( output == null )
-			output = value;
+	public void composeChord(int chord) {
+		String output = getOutput(chord);
 		getCurrentInputConnection().setComposingText(output, 1);
 	}
 
-	private boolean doGesture(int gesture) {
-		String value = mGestures.get(gesture, "");
-		Log.d("doGesture", value);
+	public boolean commitChord(int chord) {
+		String value = mChords.get(chord, "");
+		Log.d("commitChord", value);
 		if( value.length() > 0 ) {
 			if( value.equals("<Backspace>") ) {
 				getCurrentInputConnection().deleteSurroundingText(1,0);
