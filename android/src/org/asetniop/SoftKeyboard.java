@@ -89,6 +89,14 @@ public class SoftKeyboard extends InputMethodService {
 		put(O_KEY + BOTTOM_EDGE, NUMSHIFT_KEY);
 		put(P_KEY + BOTTOM_EDGE, NUMSHIFT_KEY);
 	}};
+	
+	public static int getFatKey(int baseKey, int edge, int multiplier) {
+		int cursorKey = baseKey;
+		while( multiplier-- > 0 && cursorKey > 0 ) {
+			cursorKey = fatFingerEdges.get(cursorKey | edge, 0);
+		}
+		return cursorKey;
+	}
 
 	// maps combinations of the key bits to string outputs
 	// we read these from res/raw/chords.json
@@ -206,11 +214,15 @@ public class SoftKeyboard extends InputMethodService {
 
 			// test each of the edges
 			int edge = 0;
+			int multiplier = 1;
 			int w = v.getWidth();
-			if( finger.left < 0 )
+			if( finger.left < 0 ) {
 				edge = LEFT_EDGE;
-			else if( finger.right > w )
+				multiplier = 1 + (finger.left / -w);
+			} else if( finger.right > w ) {
 				edge = RIGHT_EDGE;
+				multiplier = finger.right / w;
+			}
 			else if( finger.top < 0 )
 				edge = finger.left < (w/2) ? TOP_LEFT_EDGE : TOP_RIGHT_EDGE;
 			else if( finger.bottom > v.getHeight() )
@@ -221,7 +233,7 @@ public class SoftKeyboard extends InputMethodService {
 			// if we crossed an edge
 			if( edge > 0 ) {
 				// find the button on the other side of that edge
-				button2 = fatFingerEdges.get(button | edge, 0);
+				button2 = getFatKey(button, edge, multiplier); // fatFingerEdges.get(button | edge, 0);
 				if( button2 > 0 ) {
 					// and press it also
 					buttons.setPressed(button2, pressed);
