@@ -36,6 +36,7 @@ import android.view.ViewGroup.LayoutParams;
 import android.view.inputmethod.EditorInfo;
 import android.widget.*;
 
+@SuppressWarnings("serial")
 public class SoftKeyboard extends InputMethodService {
 	static final boolean DEBUG = false;
 	static final int A_KEY = 1 << 0;
@@ -89,7 +90,7 @@ public class SoftKeyboard extends InputMethodService {
 		put(O_KEY + BOTTOM_EDGE, NUMSHIFT_KEY);
 		put(P_KEY + BOTTOM_EDGE, NUMSHIFT_KEY);
 	}};
-	
+
 	public static int getFatKey(int baseKey, int edge, int multiplier) {
 		int cursorKey = baseKey;
 		while( multiplier-- > 0 && cursorKey > 0 ) {
@@ -97,14 +98,14 @@ public class SoftKeyboard extends InputMethodService {
 		}
 		return cursorKey;
 	}
+	private static class ChordMap extends HashMap<String, String> {}
+	private static class ChordList extends SparseArray<String> {}
 
 	// maps combinations of the key bits to string outputs
 	// we read these from res/raw/chords.json
-	private static SparseArray<String> mChords = new SparseArray<String>();
+	private static ChordList mChords = new ChordList();
 
-	private static HashMap<String, String> mOutputs = new HashMap<String, String> () {
-		private static final long serialVersionUID = 1L;
-	{
+	private static ChordMap mOutputs = new ChordMap() {{
 		put("<Tab>", "\t");
 		put("<Newline>", "\n");
 		put("<LF>", "\n");
@@ -115,13 +116,11 @@ public class SoftKeyboard extends InputMethodService {
 		put("<Alt>", "");
 		put("<Number>", "");
 		put("<Backspace>", "");
-		put("<LessThan>", "<"); // because eclipse is _re_tar_ded_ about JSON files
+		put("<LessThan>", "<"); // because eclipse has a bug with JSON files with a bare less-than value: "<"
 		put("<GreaterThan>", ">");
 	}};
 
-	private static HashMap<String, String> mLabels = new HashMap<String, String> () {
-		private static final long serialVersionUID = 1L;
-	{
+	private static ChordMap mLabels = new ChordMap() {{
 		put("<Tab>", "\\t");
 		put("<Newline>", "\\n");
 		put("<LF>", "\\n");
@@ -146,30 +145,43 @@ public class SoftKeyboard extends InputMethodService {
 	}};
 
 	public static String getLabel(int chord) {
-		String s = getGesture(chord);
+		String s = getChord(chord);
 		String t = mLabels.get(s);
 		if( t == null ) t = s;
 		return t;
 	}
+	public static String getLabel(String chord) {
+		String r = mLabels.get(chord);
+		if( r == null ) r = chord;
+		return r;
+	}
 
 	public static String getOutput(int chord) {
-		String s = getGesture(chord);
+		String s = getChord(chord);
 		String t = mOutputs.get(s);
 		if( t == null ) t = s;
 		return t;
 	}
+	public static String getOutput(String chord) {
+		String r = mOutputs.get(chord);
+		if( r == null ) r = chord;
+		return r;
+	}
 
-	public static String getGesture(int chord) {
+	public static String getChord(int chord) {
 		return mChords.get(chord, "");
 	}
 
-	private KeyToucher toucher;
+	/* This is the central collector of all the touch events
+	 * from the different buttons.
+	 */
+	KeyToucher toucher;
 
 	@Override public void onCreate() {
 		super.onCreate();
 		toucher = new KeyToucher(this);
 		try {
-			JSONObject obj = new JSONObject(convertStreamToString(getResources().openRawResource(R.raw.chords)));
+			JSONObject obj = new JSONObject(Util.convertStreamToString(getResources().openRawResource(R.raw.chords)));
 			@SuppressWarnings("unchecked")
 			Iterator<String> i = obj.keys();
 			while( i.hasNext() ) {
@@ -180,12 +192,6 @@ public class SoftKeyboard extends InputMethodService {
 			Log.e("json-error", e.toString());
 		}
 	}
-
-	/**
-	 * This is the point where you can do all of your UI initialization.  It
-	 * is called after creation and any configuration change.
-	 */
-	@Override public void onInitializeInterface() { }
 
 	private class KeyToucher implements View.OnTouchListener {
 		private boolean hasNewKeys = false;
@@ -305,14 +311,7 @@ public class SoftKeyboard extends InputMethodService {
 	}
 
 	private void addButton(LinearLayout row, int keyCode, LayoutParams layout) {
-		MyButton b = new MyButton(this);
-		b.keyCode = keyCode;
-		b.setLayoutParams(layout);
-		b.setText(mLabels.get(mChords.get(keyCode)));
-		b.setTag(Integer.valueOf(keyCode));
-		b.setOnTouchListener(this.toucher);
-		toucher.buttons.add(b);
-		row.addView(b);
+		row.addView(toucher.buttons.add(this, keyCode, getLabel(keyCode), layout));
 	}
 
 	private LinearLayout addRow(LinearLayout base) {
@@ -326,21 +325,20 @@ public class SoftKeyboard extends InputMethodService {
 
 		// compute the button sizes
 		int w = this.getMaxWidth();
-		int d = 3;
-		if( w < 1000 ) d = 2;
-		LayoutParams smallKey = new LayoutParams(w/8, w/(2*d));
-		LayoutParams shiftKey = new LayoutParams(w/4, w/(4*d));
-		LayoutParams spaceKey = new LayoutParams(w/2, w/(4*d));
+		int h = this.getResources().getInteger(R.dimen.key_height);
+		LayoutParams smallKey = new LayoutParams(w/8, h);
+		LayoutParams shiftKey = new LayoutParams(w/4, h);
+		LayoutParams spaceKey = new LayoutParams(w/2, h);
 
 		// create the root layout (linear, vertical)
-		LinearLayout L = new LinearLayout(this);
-		L.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-		L.setOrientation(LinearLayout.VERTICAL);
+		LinearLayout root = new LinearLayout(this);
+		root.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+		root.setOrientation(LinearLayout.VERTICAL);
 
 		// reset whatever chords/shifts were in progress last time
 		toucher.reset();
 
-		LinearLayout row = addRow(L);
+		LinearLayout row = addRow(root);
 		addButton(row, A_KEY, smallKey);
 		addButton(row, S_KEY, smallKey);
 		addButton(row, E_KEY, smallKey);
@@ -350,12 +348,12 @@ public class SoftKeyboard extends InputMethodService {
 		addButton(row, O_KEY, smallKey);
 		addButton(row, P_KEY, smallKey);
 
-		row = addRow(L);
+		row = addRow(root);
 		addButton(row, SHIFT_KEY, shiftKey);
 		addButton(row, SPACE_KEY, spaceKey);
 		addButton(row, NUMSHIFT_KEY, shiftKey);
 
-		return L;
+		return root;
 	}
 
 	@Override public void onStartInput(EditorInfo attribute, boolean restarting) {
@@ -365,7 +363,6 @@ public class SoftKeyboard extends InputMethodService {
 		// the underlying state of the text editor could have changed in any way.
 		toucher.reset();
 
-
 		// We are now going to initialize our state based on the type of
 		// text being edited.
 		switch (attribute.inputType & InputType.TYPE_MASK_CLASS) {
@@ -373,7 +370,6 @@ public class SoftKeyboard extends InputMethodService {
 		case InputType.TYPE_CLASS_DATETIME:
 		case InputType.TYPE_CLASS_PHONE:
 		case InputType.TYPE_CLASS_TEXT:
-
 		default:
 		}
 	}
@@ -394,25 +390,16 @@ public class SoftKeyboard extends InputMethodService {
 	}
 
 	public boolean commitChord(int chord) {
-		String value = mChords.get(chord, "");
-		Log.d("commitChord", value);
+		String value = getChord(chord);
 		if( value.length() > 0 ) {
 			if( value.equals("<Backspace>") ) {
 				getCurrentInputConnection().deleteSurroundingText(1,0);
 			} else {
-				String output = mOutputs.get(value);
-				if( output != null )
-					value = output;
-				getCurrentInputConnection().commitText(value, 1);
+				getCurrentInputConnection().commitText(getOutput(value), 1);
 			}
 			return true;
 		}
 		return false;
-	}
-
-	private static String convertStreamToString(java.io.InputStream is) {
-		java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-		return s.hasNext() ? s.next() : "";
 	}
 
 
