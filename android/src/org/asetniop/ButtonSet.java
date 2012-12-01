@@ -11,9 +11,9 @@ import android.widget.Button;
 
 class ButtonSet {
 
-	class MyButton extends Button {
+	class Key extends Button {
 		private Drawable originalBackground;
-		public MyButton(Context context) {
+		public Key(Context context) {
 			super(context);
 			this.originalBackground = getBackground();
 		}
@@ -48,12 +48,12 @@ class ButtonSet {
 	}
 
 	@SuppressLint("UseSparseArrays")
-	private HashMap<Integer,MyButton> buttons = new HashMap<Integer,MyButton>();
+	private HashMap<Integer,Key> buttons = new HashMap<Integer,Key>();
 	public int chord = 0;
 	public int sticky = 0;
 
 	public void setPressed(int keyCode, boolean flag) {
-		MyButton b = buttons.get(keyCode);
+		Key b = buttons.get(keyCode);
 		if( b == null ) return;
 		if( b.press(flag) == 1 ) {
 			chord = chord | keyCode;
@@ -64,7 +64,7 @@ class ButtonSet {
 	}
 
 	public void refresh(int g) {
-		for( MyButton b : buttons.values() ) {
+		for( Key b : buttons.values() ) {
 			b.updateBackground();
 			b.updateText(g);
 		}
@@ -83,7 +83,7 @@ class ButtonSet {
 	}
 
 	public Button add(Context parent, int keyCode, String label, LayoutParams layout) {
-		MyButton b = new MyButton(parent);
+		Key b = new Key(parent);
 		b.keyCode = keyCode;
 		b.setText(label);
 		b.setTag(Integer.valueOf(keyCode));
@@ -93,7 +93,7 @@ class ButtonSet {
 
 	public void reset() {
 		chord = 0;
-		for( MyButton b : buttons.values() ) {
+		for( Key b : buttons.values() ) {
 			b.reset();
 		}
 	}
