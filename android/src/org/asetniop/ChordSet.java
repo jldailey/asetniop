@@ -61,6 +61,7 @@ public class ChordSet {
 			Iterator<String> i = obj.keys();
 			while( i.hasNext() ) {
 				String key = i.next();
+				Log.d("ChordSet", "reading key: " + key);
 				chords.put(Integer.parseInt(key), obj.getString(key));
 			}
 		} catch( JSONException e ) {

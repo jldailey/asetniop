@@ -12,9 +12,10 @@ class ButtonSet {
 
 	class MyButton extends Button {
 		private Drawable originalBackground;
-		private ChordSet chords;
-		public MyButton(Context context, ChordSet chords) {
-			super(context);
+		private SoftKeyboard kb;
+		public MyButton(SoftKeyboard kb) {
+			super(kb);
+			this.kb = kb;
 			this.originalBackground = getBackground();
 		}
 		public int keyCode;
@@ -27,7 +28,7 @@ class ButtonSet {
 			}
 		}
 		public void updateText(int chord) {
-			setText(chords.getLabel(chord | this.keyCode, ""));
+			setText(kb.getLabel(chord | this.keyCode));
 		}
 		public void reset() {
 			status = 0;
@@ -48,9 +49,10 @@ class ButtonSet {
 	}
 	
 	public Button create(SoftKeyboard kb, int keyCode) {
-		MyButton b = new MyButton(kb, kb.mChords);
+		MyButton b = new MyButton(kb);
 		b.keyCode = keyCode;
 		b.setTag(Integer.valueOf(keyCode));
+		add(b);
 		return b;
 	}
 

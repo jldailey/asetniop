@@ -328,6 +328,7 @@ public class SoftKeyboard extends InputMethodService {
 
 	public void composeChord(int chord) {
 		String output = mChords.getOutput(chord, "");
+		Log.d("composeChord", "chord: " + chord + " output: " + output);
 		getCurrentInputConnection().setComposingText(output, 1);
 	}
 
@@ -346,6 +347,10 @@ public class SoftKeyboard extends InputMethodService {
 			return true;
 		}
 		return false;
+	}
+	
+	public String getLabel(int chord) {
+		return mChords.getLabel(chord,  "");
 	}
 
 
