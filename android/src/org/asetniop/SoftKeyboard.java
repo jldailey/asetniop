@@ -16,19 +16,12 @@
 
 package org.asetniop;
 
-import java.util.HashMap;
-import java.util.Iterator;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import com.example.android.softkeyboard.R;
 
 import android.graphics.Rect;
 import android.inputmethodservice.InputMethodService;
 import android.text.InputType;
 import android.util.Log;
-import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.view.MotionEvent;
 import android.view.View;

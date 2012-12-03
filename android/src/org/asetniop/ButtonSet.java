@@ -3,7 +3,6 @@ package org.asetniop;
 import java.util.HashMap;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.widget.Button;
