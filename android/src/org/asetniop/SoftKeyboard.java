@@ -58,38 +58,52 @@ public class SoftKeyboard extends InputMethodService {
 	static final int LEFT_EDGE = 1 << 15;
 
 	private static final SparseIntArray fatFingerEdges = new SparseIntArray() {{
-		put(SHIFT_KEY + TOP_LEFT_EDGE, A_KEY);
-		put(SHIFT_KEY + TOP_RIGHT_EDGE, S_KEY);
-		put(SHIFT_KEY + RIGHT_EDGE, SPACE_KEY);
-		put(NUMSHIFT_KEY + TOP_LEFT_EDGE, O_KEY);
-		put(NUMSHIFT_KEY + TOP_RIGHT_EDGE, P_KEY);
-		put(NUMSHIFT_KEY + LEFT_EDGE, SPACE_KEY);
-		put(SPACE_KEY + LEFT_EDGE, SHIFT_KEY);
-		put(SPACE_KEY + RIGHT_EDGE, NUMSHIFT_KEY);
-		put(A_KEY + RIGHT_EDGE, S_KEY);
-		put(S_KEY + RIGHT_EDGE, E_KEY);
-		put(E_KEY + RIGHT_EDGE, T_KEY);
-		put(T_KEY + RIGHT_EDGE, N_KEY);
-		put(N_KEY + RIGHT_EDGE, I_KEY);
-		put(I_KEY + RIGHT_EDGE, O_KEY);
-		put(O_KEY + RIGHT_EDGE, P_KEY);
-		put(S_KEY + LEFT_EDGE, A_KEY);
-		put(E_KEY + LEFT_EDGE, S_KEY);
-		put(T_KEY + LEFT_EDGE, E_KEY);
-		put(N_KEY + LEFT_EDGE, T_KEY);
-		put(I_KEY + LEFT_EDGE, N_KEY);
-		put(O_KEY + LEFT_EDGE, I_KEY);
-		put(P_KEY + LEFT_EDGE, O_KEY);
-		put(A_KEY + BOTTOM_EDGE, SHIFT_KEY);
-		put(S_KEY + BOTTOM_EDGE, SHIFT_KEY);
-		put(E_KEY + BOTTOM_EDGE, SPACE_KEY);
-		put(T_KEY + BOTTOM_EDGE, SPACE_KEY);
-		put(N_KEY + BOTTOM_EDGE, SPACE_KEY);
-		put(I_KEY + BOTTOM_EDGE, SPACE_KEY);
-		put(O_KEY + BOTTOM_EDGE, NUMSHIFT_KEY);
-		put(P_KEY + BOTTOM_EDGE, NUMSHIFT_KEY);
+		put(A_KEY + RIGHT_EDGE, E_KEY);
+		put(A_KEY + BOTTOM_EDGE, S_KEY);
+
+		put(E_KEY + RIGHT_EDGE, SHIFT_KEY);
+		put(E_KEY + BOTTOM_EDGE, T_KEY);
+		put(E_KEY + LEFT_EDGE, A_KEY);
+
+		put(S_KEY + RIGHT_EDGE, T_KEY);
+		put(S_KEY + TOP_LEFT_EDGE, A_KEY);
+		put(S_KEY + TOP_RIGHT_EDGE, A_KEY);
+
+		put(T_KEY + RIGHT_EDGE, SPACE_KEY);
+		put(T_KEY + TOP_LEFT_EDGE, E_KEY);
+		put(T_KEY + TOP_RIGHT_EDGE, E_KEY);
+		put(T_KEY + LEFT_EDGE, S_KEY);
+
+		put(SHIFT_KEY + LEFT_EDGE, E_KEY);
+		put(SHIFT_KEY + RIGHT_EDGE, NUMSHIFT_KEY);
+		put(SHIFT_KEY + BOTTOM_EDGE, SPACE_KEY);
+
+		put(NUMSHIFT_KEY + LEFT_EDGE, SHIFT_KEY);
+		put(NUMSHIFT_KEY + RIGHT_EDGE, N_KEY);
+		put(NUMSHIFT_KEY + BOTTOM_EDGE, SPACE_KEY);
+
+		put(SPACE_KEY + LEFT_EDGE, T_KEY);
+		put(SPACE_KEY + RIGHT_EDGE, I_KEY);
+		put(SPACE_KEY + TOP_LEFT_EDGE, SHIFT_KEY);
+		put(SPACE_KEY + TOP_RIGHT_EDGE, NUMSHIFT_KEY);
+
+		put(N_KEY + LEFT_EDGE, NUMSHIFT_KEY);
+		put(N_KEY + RIGHT_EDGE, O_KEY);
+		put(N_KEY + BOTTOM_EDGE, I_KEY);
+
+		put(O_KEY + LEFT_EDGE, N_KEY);
+		put(O_KEY + BOTTOM_EDGE, P_KEY);
+
+		put(I_KEY + LEFT_EDGE, SPACE_KEY);
+		put(I_KEY + TOP_LEFT_EDGE, N_KEY);
+		put(I_KEY + TOP_RIGHT_EDGE, N_KEY);
+		put(I_KEY + RIGHT_EDGE, P_KEY);
+
+		put(P_KEY + LEFT_EDGE, I_KEY);
+		put(P_KEY + TOP_LEFT_EDGE, O_KEY);
+		put(P_KEY + TOP_RIGHT_EDGE, O_KEY);
 	}};
-	
+
 	public static int getFatKey(int baseKey, int edge, int multiplier) {
 		int cursorKey = baseKey;
 		while( multiplier-- > 0 && cursorKey > 0 ) {
@@ -98,87 +112,13 @@ public class SoftKeyboard extends InputMethodService {
 		return cursorKey;
 	}
 
-	// maps combinations of the key bits to string outputs
-	// we read these from res/raw/chords.json
-	private static SparseArray<String> mChords = new SparseArray<String>();
-
-	private static HashMap<String, String> mOutputs = new HashMap<String, String> () {
-		private static final long serialVersionUID = 1L;
-	{
-		put("<Tab>", "\t");
-		put("<Newline>", "\n");
-		put("<LF>", "\n");
-		put("<NL>", "\n");
-		put("<CR>", "\r");
-		put("<Shift>", "");
-		put("<Ctrl>", "");
-		put("<Alt>", "");
-		put("<Number>", "");
-		put("<Backspace>", "");
-		put("<LessThan>", "<"); // because eclipse is _re_tar_ded_ about JSON files
-		put("<GreaterThan>", ">");
-	}};
-
-	private static HashMap<String, String> mLabels = new HashMap<String, String> () {
-		private static final long serialVersionUID = 1L;
-	{
-		put("<Tab>", "\\t");
-		put("<Newline>", "\\n");
-		put("<LF>", "\\n");
-		put("<NL>", "\\n");
-		put("<CR>", "\\r");
-		put("<Shift>", "sh");
-		put("<Ctrl>", "ctl");
-		put("<Alt>", "alt");
-		put("<Number>", "num");
-		put("<Backspace>", "bs");
-		put("<LessThan>", "<");
-		put("<GreaterThan>", ">");
-		put(" ", "space");
-		put("a", "a");
-		put("s", "s");
-		put("e", "e");
-		put("t", "t");
-		put("n", "n");
-		put("i", "i");
-		put("o", "o");
-		put("p", "p");
-	}};
-
-	public static String getLabel(int chord) {
-		String s = getGesture(chord);
-		String t = mLabels.get(s);
-		if( t == null ) t = s;
-		return t;
-	}
-
-	public static String getOutput(int chord) {
-		String s = getGesture(chord);
-		String t = mOutputs.get(s);
-		if( t == null ) t = s;
-		return t;
-	}
-
-	public static String getGesture(int chord) {
-		return mChords.get(chord, "");
-	}
-
 	private KeyToucher toucher;
+	public ChordSet mChords;
 
 	@Override public void onCreate() {
 		super.onCreate();
 		toucher = new KeyToucher(this);
-		try {
-			JSONObject obj = new JSONObject(convertStreamToString(getResources().openRawResource(R.raw.chords)));
-			@SuppressWarnings("unchecked")
-			Iterator<String> i = obj.keys();
-			while( i.hasNext() ) {
-				String key = i.next();
-				mChords.put(Integer.parseInt(key), obj.getString(key));
-			}
-		} catch( JSONException e ) {
-			Log.e("json-error", e.toString());
-		}
+		mChords = new ChordSet(getResources().openRawResource(R.raw.chords));
 	}
 
 	/**
@@ -305,13 +245,10 @@ public class SoftKeyboard extends InputMethodService {
 	}
 
 	private void addButton(LinearLayout row, int keyCode, LayoutParams layout) {
-		MyButton b = new MyButton(this);
-		b.keyCode = keyCode;
+		Button b = toucher.buttons.create(this, keyCode);
 		b.setLayoutParams(layout);
-		b.setText(mLabels.get(mChords.get(keyCode)));
-		b.setTag(Integer.valueOf(keyCode));
+		b.setText(mChords.getLabel(keyCode, ""));
 		b.setOnTouchListener(this.toucher);
-		toucher.buttons.add(b);
 		row.addView(b);
 	}
 
@@ -324,13 +261,14 @@ public class SoftKeyboard extends InputMethodService {
 
 	@Override public View onCreateInputView() {
 
+		// button sizes in corner-grid layout:
+		//
 		// compute the button sizes
 		int w = this.getMaxWidth();
-		int d = 3;
-		if( w < 1000 ) d = 2;
-		LayoutParams smallKey = new LayoutParams(w/8, w/(2*d));
-		LayoutParams shiftKey = new LayoutParams(w/4, w/(4*d));
-		LayoutParams spaceKey = new LayoutParams(w/2, w/(4*d));
+		int h = 100;
+		LayoutParams smallKey = new LayoutParams(w/6, h);
+		LayoutParams shiftKey = new LayoutParams(w/6, h);
+		LayoutParams spaceKey = new LayoutParams(w/3, h);
 
 		// create the root layout (linear, vertical)
 		LinearLayout L = new LinearLayout(this);
@@ -342,18 +280,18 @@ public class SoftKeyboard extends InputMethodService {
 
 		LinearLayout row = addRow(L);
 		addButton(row, A_KEY, smallKey);
-		addButton(row, S_KEY, smallKey);
 		addButton(row, E_KEY, smallKey);
-		addButton(row, T_KEY, smallKey);
+		addButton(row, SHIFT_KEY, shiftKey);
+		addButton(row, NUMSHIFT_KEY, shiftKey);
 		addButton(row, N_KEY, smallKey);
-		addButton(row, I_KEY, smallKey);
 		addButton(row, O_KEY, smallKey);
-		addButton(row, P_KEY, smallKey);
 
 		row = addRow(L);
-		addButton(row, SHIFT_KEY, shiftKey);
+		addButton(row, S_KEY, smallKey);
+		addButton(row, T_KEY, smallKey);
 		addButton(row, SPACE_KEY, spaceKey);
-		addButton(row, NUMSHIFT_KEY, shiftKey);
+		addButton(row, I_KEY, smallKey);
+		addButton(row, P_KEY, smallKey);
 
 		return L;
 	}
@@ -389,18 +327,18 @@ public class SoftKeyboard extends InputMethodService {
 	}
 
 	public void composeChord(int chord) {
-		String output = getOutput(chord);
+		String output = mChords.getOutput(chord, "");
 		getCurrentInputConnection().setComposingText(output, 1);
 	}
 
 	public boolean commitChord(int chord) {
-		String value = mChords.get(chord, "");
+		String value = mChords.getChord(chord, "");
 		Log.d("commitChord", value);
 		if( value.length() > 0 ) {
 			if( value.equals("<Backspace>") ) {
 				getCurrentInputConnection().deleteSurroundingText(1,0);
 			} else {
-				String output = mOutputs.get(value);
+				String output = mChords.getOutput(chord,  "");
 				if( output != null )
 					value = output;
 				getCurrentInputConnection().commitText(value, 1);
@@ -408,11 +346,6 @@ public class SoftKeyboard extends InputMethodService {
 			return true;
 		}
 		return false;
-	}
-
-	private static String convertStreamToString(java.io.InputStream is) {
-		java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-		return s.hasNext() ? s.next() : "";
 	}
 
 
