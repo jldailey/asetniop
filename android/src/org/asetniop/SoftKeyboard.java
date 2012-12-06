@@ -216,17 +216,17 @@ public class SoftKeyboard extends InputMethodService {
 
 		LinearLayout row = addRow(L);
 		addButton(row, A_KEY, smallKey);
-		buttonEdges.put(A_KEY + RIGHT_EDGE, E_KEY);
+		buttonEdges.put(A_KEY + RIGHT_EDGE, T_KEY);
 		buttonEdges.put(A_KEY + BOTTOM_EDGE, S_KEY);
 
-		addButton(row, E_KEY, smallKey);
-		buttonEdges.put(E_KEY + RIGHT_EDGE, SHIFT_KEY);
-		buttonEdges.put(E_KEY + LEFT_EDGE, A_KEY);
-		buttonEdges.put(E_KEY + BOTTOM_EDGE, T_KEY);
+		addButton(row, T_KEY, smallKey);
+		buttonEdges.put(T_KEY + RIGHT_EDGE, SHIFT_KEY);
+		buttonEdges.put(T_KEY + LEFT_EDGE, A_KEY);
+		buttonEdges.put(T_KEY + BOTTOM_EDGE, E_KEY);
 
 		addButton(row, SHIFT_KEY, shiftKey);
 		buttonEdges.put(SHIFT_KEY + RIGHT_EDGE, NUMSHIFT_KEY);
-		buttonEdges.put(SHIFT_KEY + LEFT_EDGE, E_KEY);
+		buttonEdges.put(SHIFT_KEY + LEFT_EDGE, T_KEY);
 		buttonEdges.put(SHIFT_KEY + BOTTOM_EDGE, SPACE_KEY);
 
 		addButton(row, NUMSHIFT_KEY, shiftKey);
@@ -235,42 +235,42 @@ public class SoftKeyboard extends InputMethodService {
 		buttonEdges.put(NUMSHIFT_KEY + BOTTOM_EDGE, SPACE_KEY);
 
 		addButton(row, N_KEY, smallKey);
-		buttonEdges.put(N_KEY + RIGHT_EDGE, O_KEY);
+		buttonEdges.put(N_KEY + RIGHT_EDGE, P_KEY);
 		buttonEdges.put(N_KEY + LEFT_EDGE, NUMSHIFT_KEY);
 		buttonEdges.put(N_KEY + BOTTOM_EDGE, I_KEY);
-
-		addButton(row, O_KEY, smallKey);
-		buttonEdges.put(O_KEY + LEFT_EDGE, N_KEY);
-		buttonEdges.put(O_KEY + BOTTOM_EDGE, P_KEY);
+		
+		addButton(row, P_KEY, smallKey);
+		buttonEdges.put(P_KEY + LEFT_EDGE, N_KEY);
+		buttonEdges.put(P_KEY + BOTTOM_EDGE, O_KEY);
 
 		row = addRow(L);
 		addButton(row, S_KEY, smallKey);
-		buttonEdges.put(S_KEY + RIGHT_EDGE, T_KEY);
+		buttonEdges.put(S_KEY + RIGHT_EDGE, E_KEY);
 		buttonEdges.put(S_KEY + TOP_LEFT_EDGE, A_KEY);
 		buttonEdges.put(S_KEY + TOP_RIGHT_EDGE, A_KEY);
 
-		buttonEdges.put(SPACE_KEY + LEFT_EDGE, T_KEY);
-		addButton(row, T_KEY, smallKey);
-		buttonEdges.put(T_KEY + RIGHT_EDGE, SPACE_KEY);
-		buttonEdges.put(T_KEY + LEFT_EDGE, S_KEY);
-		buttonEdges.put(T_KEY + TOP_LEFT_EDGE, E_KEY);
-		buttonEdges.put(T_KEY + TOP_RIGHT_EDGE, E_KEY);
+		addButton(row, E_KEY, smallKey);
+		buttonEdges.put(E_KEY + RIGHT_EDGE, SPACE_KEY);
+		buttonEdges.put(E_KEY + LEFT_EDGE, S_KEY);
+		buttonEdges.put(E_KEY + TOP_LEFT_EDGE, T_KEY);
+		buttonEdges.put(E_KEY + TOP_RIGHT_EDGE, T_KEY);
 
 		addButton(row, SPACE_KEY, spaceKey);
 		buttonEdges.put(SPACE_KEY + RIGHT_EDGE, I_KEY);
+		buttonEdges.put(SPACE_KEY + LEFT_EDGE, E_KEY);
 		buttonEdges.put(SPACE_KEY + TOP_LEFT_EDGE, SHIFT_KEY);
 		buttonEdges.put(SPACE_KEY + TOP_RIGHT_EDGE, NUMSHIFT_KEY);
 
 		addButton(row, I_KEY, smallKey);
-		buttonEdges.put(I_KEY + RIGHT_EDGE, P_KEY);
+		buttonEdges.put(I_KEY + RIGHT_EDGE, O_KEY);
 		buttonEdges.put(I_KEY + LEFT_EDGE, SPACE_KEY);
 		buttonEdges.put(I_KEY + TOP_LEFT_EDGE, N_KEY);
 		buttonEdges.put(I_KEY + TOP_RIGHT_EDGE, N_KEY);
 
-		addButton(row, P_KEY, smallKey);
-		buttonEdges.put(P_KEY + LEFT_EDGE, I_KEY);
-		buttonEdges.put(P_KEY + TOP_LEFT_EDGE, O_KEY);
-		buttonEdges.put(P_KEY + TOP_RIGHT_EDGE, O_KEY);
+		addButton(row, O_KEY, smallKey);
+		buttonEdges.put(O_KEY + LEFT_EDGE, I_KEY);
+		buttonEdges.put(O_KEY + TOP_LEFT_EDGE, P_KEY);
+		buttonEdges.put(O_KEY + TOP_RIGHT_EDGE, P_KEY);
 
 		return L;
 	}
