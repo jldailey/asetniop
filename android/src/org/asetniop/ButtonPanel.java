@@ -46,7 +46,7 @@ class ButtonPanel {
 			return "{MyButton keyCode:"+keyCode + " status: " + status + "}";
 		}
 	}
-	
+
 	public Button createButton(SoftKeyboard kb, int keyCode) {
 		MyButton b = new MyButton(kb);
 		b.keyCode = keyCode;
