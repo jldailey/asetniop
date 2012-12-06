@@ -7,7 +7,7 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.widget.Button;
 
-class ButtonSet {
+class ButtonPanel {
 
 	class MyButton extends Button {
 		private Drawable originalBackground;
@@ -47,7 +47,7 @@ class ButtonSet {
 		}
 	}
 	
-	public Button create(SoftKeyboard kb, int keyCode) {
+	public Button createButton(SoftKeyboard kb, int keyCode) {
 		MyButton b = new MyButton(kb);
 		b.keyCode = keyCode;
 		b.setTag(Integer.valueOf(keyCode));
