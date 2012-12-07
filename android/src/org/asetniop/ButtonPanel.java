@@ -16,18 +16,26 @@ class ButtonPanel {
 			super(kb);
 			this.kb = kb;
 			this.originalBackground = getBackground();
+			this.textSize = this.getTextSize() / 2;
 		}
 		public int keyCode;
-		private int status = 0; // this can be -1, 0, or 1; because the UI will sometimes send the up,down messages out of order
+		private float textSize;
+		private int status = 0;
 		public void updateBackground() {
 			if( status == 1 ) {
-				setBackgroundColor(Color.DKGRAY);
+				setBackgroundColor(Color.rgb(160, 160, 170));
 			} else {
 				setBackground(originalBackground);
 			}
 		}
 		public void updateText(int chord) {
-			setText(kb.getLabel(chord | this.keyCode));
+			String label = kb.getLabel(chord | this.keyCode);
+			setText(label);
+			if (label.length() > 3) {
+				setTextSize(this.textSize * .8f);
+			} else {
+				setTextSize(this.textSize);
+			}
 		}
 		public void reset() {
 			status = 0;
