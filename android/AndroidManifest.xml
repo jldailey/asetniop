@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" 
-        package="com.example.android.softkeyboard">
+        package="org.asetniop">
     <uses-sdk android:minSdkVersion="16" android:targetSdkVersion="17"/>
     <application android:label="@string/ime_name" android:hardwareAccelerated="true">
         <service android:name="org.asetniop.SoftKeyboard"
