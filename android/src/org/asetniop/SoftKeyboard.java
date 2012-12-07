@@ -16,17 +16,19 @@
 
 package org.asetniop;
 
-import com.example.android.softkeyboard.R;
+import org.asetniop.R;
 
 import android.graphics.Rect;
 import android.inputmethodservice.InputMethodService;
 import android.text.InputType;
 import android.util.Log;
 import android.util.SparseIntArray;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import android.widget.*;
 
 public class SoftKeyboard extends InputMethodService {
@@ -128,7 +130,6 @@ public class SoftKeyboard extends InputMethodService {
 			// so later we can release all those buttons when that pointer id is lifted
 			// no matter the location
 
-			int button = (Integer)v.getTag();
 			int p, i = 0;
 			MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
 
@@ -143,12 +144,13 @@ public class SoftKeyboard extends InputMethodService {
 					event.getPointerCoords(p, coords);
 					pointers.set(i, fatFingerPress(v, coords, true));
 				}
-				composeChord(buttons.chord | buttons.sticky);
+				if( hasNewKeys )
+					composeChord(buttons.chord | buttons.sticky);
 				break;
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP: // primary and secondary pointer events are all the same to us
 				if( hasNewKeys ) {
-					if( (buttons.chord & STICKY_KEYS) == buttons.chord ) { // if the chord is all sticky keys
+					if( (buttons.chord & STICKY_KEYS) == buttons.chord && Integer.bitCount(buttons.chord) == 1) { // if the chord is all sticky keys
 						if( buttons.chord == buttons.sticky ) { // if it was already stuck
 							buttons.unstick(buttons.chord);
 						} else {
@@ -170,7 +172,7 @@ public class SoftKeyboard extends InputMethodService {
 				hasNewKeys = false;
 				break;
 			}
-			Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " chord: " + buttons.chord);
+			// Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " chord: " + buttons.chord);
 			return true;
 		}
 
@@ -201,7 +203,7 @@ public class SoftKeyboard extends InputMethodService {
 		//
 		// compute the button sizes
 		int w = this.getMaxWidth();
-		int h = w/8;
+		int h = (int)getResources().getDimension(R.dimen.key_height);
 		LayoutParams smallKey = new LayoutParams(w/6, h);
 		LayoutParams shiftKey = new LayoutParams(w/6, h);
 		LayoutParams spaceKey = new LayoutParams(w/3, h);
@@ -304,32 +306,37 @@ public class SoftKeyboard extends InputMethodService {
 		super.onStartInputView(attribute, restarting);
 		toucher.reset();
 	}
+	
+	public boolean sendKeyPress(int keyCode) {
+		InputConnection ic = getCurrentInputConnection();
+		ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyCode));
+		ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, keyCode));
+		return true;
+	}
 
 	public void composeChord(int chord) {
 		String output = mChords.getOutput(chord, "");
-		Log.d("composeChord", "chord: " + chord + " output: " + output);
 		getCurrentInputConnection().setComposingText(output, 1);
 	}
 
 	public boolean commitChord(int chord) {
 		String value = mChords.getChord(chord, "");
 		Log.d("commitChord", value);
-		if( value.length() > 0 ) {
-			if( value.equals("<Backspace>") ) {
-				getCurrentInputConnection().deleteSurroundingText(1,0);
-			} else {
-				String output = mChords.getOutput(chord,  "");
-				if( output != null )
-					value = output;
-				getCurrentInputConnection().commitText(value, 1);
-			}
-			return true;
-		}
-		return false;
+		if( value.length() == 0 )
+			return false;
+
+		if( value.equals("<Backspace>") )
+			return getCurrentInputConnection().deleteSurroundingText(1,0) || true;
+
+		int raw = mChords.getRawKey(chord, 0);
+		if( raw > 0 )
+			return sendKeyPress(raw);
+
+		return getCurrentInputConnection().commitText(mChords.getOutput(chord,  value), 1) || true;
 	}
 
 	public String getLabel(int chord) {
-		return mChords.getLabel(chord,  "");
+		return mChords.getLabel(chord,  "" + chord);
 	}
 
 

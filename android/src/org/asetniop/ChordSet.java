@@ -9,6 +9,7 @@ import org.json.JSONObject;
 
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.KeyEvent;
 
 @SuppressWarnings("serial")
 public class ChordSet {
@@ -23,6 +24,7 @@ public class ChordSet {
 		put("<Shift>", "");
 		put("<Ctrl>", "");
 		put("<Alt>", "");
+		put("<Esc>", "");
 		put("<Number>", "");
 		put("<Backspace>", "");
 		put("<LessThan>", "<"); // because eclipse is buggy about linting JSON
@@ -40,6 +42,17 @@ public class ChordSet {
 		put("<Alt>", "alt");
 		put("<Number>", "num");
 		put("<Backspace>", "bs");
+		put("<Esc>", "esc");
+		put("<F1>", "F1");
+		put("<F2>", "F2");
+		put("<F3>", "F3");
+		put("<F4>", "F4");
+		put("<F5>", "F5");
+		put("<F6>", "F6");
+		put("<F7>", "F7");
+		put("<F8>", "F8");
+		put("<F9>", "F9");
+		put("<F10>", "F10");
 		put("<LessThan>", "<");
 		put("<GreaterThan>", ">");
 		put(" ", "space");
@@ -53,6 +66,20 @@ public class ChordSet {
 		put("p", "p");
 	}};
 	
+	private final HashMap<String, Integer> rawKeys = new HashMap<String, Integer> () {{
+		put("<Esc>", KeyEvent.KEYCODE_ESCAPE);
+		put("<F1>", KeyEvent.KEYCODE_F1);
+		put("<F2>", KeyEvent.KEYCODE_F2);
+		put("<F3>", KeyEvent.KEYCODE_F3);
+		put("<F4>", KeyEvent.KEYCODE_F4);
+		put("<F5>", KeyEvent.KEYCODE_F5);
+		put("<F6>", KeyEvent.KEYCODE_F6);
+		put("<F7>", KeyEvent.KEYCODE_F7);
+		put("<F8>", KeyEvent.KEYCODE_F8);
+		put("<F9>", KeyEvent.KEYCODE_F9);
+		put("<F10>", KeyEvent.KEYCODE_F10);
+	}};
+
 	public ChordSet(InputStream jsonStream) {
 		chords = new SparseArray<String>(1024);
 		try {
@@ -61,27 +88,31 @@ public class ChordSet {
 			Iterator<String> i = obj.keys();
 			while( i.hasNext() ) {
 				String key = i.next();
-				Log.d("ChordSet", "reading key: " + key);
 				chords.put(Integer.parseInt(key), obj.getString(key));
 			}
 		} catch( JSONException e ) {
 			Log.e("json-error", e.toString());
 		}
 	}
-	
+
 	public String getChord(int chord, String def) {
 		return chords.get(chord, def);
 	}
-	
+
 	public String getOutput(int chord, String def) {
 		String ret = getChord(chord, def);
 		return outputs.containsKey(ret) ? outputs.get(ret) : ret;
 	}
+
 	public String getLabel(int chord, String def) {
 		String ret = getChord(chord, def);
 		return labels.containsKey(ret) ? labels.get(ret) : ret;
 	}
 
+	public int getRawKey(int chord, int def) {
+		String val = getChord(chord, "");
+		return rawKeys.containsKey(val) ? rawKeys.get(val) : def;
+	}
 
 	private static String convertStreamToString(java.io.InputStream is) {
 		java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
