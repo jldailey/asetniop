@@ -102,4 +102,12 @@ class ButtonPanel {
 			b.reset();
 		}
 	}
+	public Button get(int keyCode) {
+		return buttons.containsKey(keyCode) ? buttons.get(keyCode) : null;
+	}
+	public void toggleSticky(int c) {
+		if( c == sticky ) unstick(c);
+		else stick(c);
+	}
+	public void toggleSticky() { toggleSticky(chord); }
 }

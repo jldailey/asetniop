@@ -21,7 +21,6 @@ import org.asetniop.R;
 import android.graphics.Rect;
 import android.inputmethodservice.InputMethodService;
 import android.text.InputType;
-import android.util.Log;
 import android.util.SparseIntArray;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -31,9 +30,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.widget.*;
 
-@SuppressWarnings("serial")
 public class SoftKeyboard extends InputMethodService {
-	static final boolean DEBUG = false;
 	static final int A_KEY = 1 << 0;
 	static final int S_KEY = 1 << 1;
 	static final int E_KEY = 1 << 2;
@@ -62,28 +59,31 @@ public class SoftKeyboard extends InputMethodService {
 
 	@Override public void onCreate() {
 		super.onCreate();
-		toucher = new KeyToucher(this);
+		toucher = new KeyToucher();
 		mChords = new ChordSet(getResources().openRawResource(R.raw.chords));
 	}
 
+	// onTouch events from all the various buttons and views go through KeyToucher
 	private class KeyToucher implements View.OnTouchListener {
 		private boolean hasNewKeys = false;
 		public ButtonPanel buttons = new ButtonPanel();
 		public PointerSet pointers = new PointerSet();
 
-		private SoftKeyboard kb;
-		public KeyToucher( SoftKeyboard kb ) {
-			this.kb = kb;
-		}
-
 		private int fatFingerPress(View v, MotionEvent.PointerCoords coords, boolean pressed) {
+			if( v == null ) return 0;
+			Object tag = v.getTag();
+			if( tag == null ) return 0;
 			// the original button pressed
-			int button = (Integer)v.getTag();
+			int button = (Integer)tag;
+			if( button == 0 ) return 0;
 
-			// first, find the finger
+			// press the original button
+			buttons.setPressed(button,  pressed);
+
+			// find the finger
 			Rect finger = new Rect();
 			// we ignore orientation for now, and just treat max(major,minor)^2 as a square bounding box
-			int m = Math.round(Math.max(coords.touchMajor, coords.touchMinor) / 6); // divide down so we get a centered box, smaller than the real hit box
+			int m = Math.round(Math.max(coords.touchMajor, coords.touchMinor) / 5); // divide down so we get a centered box, smaller than the real hit box
 			finger.left = Math.round(coords.x) - m;
 			finger.right = Math.round(coords.x) + m;
 			finger.top = Math.round(coords.y) - m;
@@ -93,23 +93,25 @@ public class SoftKeyboard extends InputMethodService {
 			int w = v.getWidth();
 			int h = v.getHeight();
 
-			// press the original button
-			buttons.setPressed(button,  pressed);
 			int cursorKey = button;
 			if( finger.top < 0 ) {
 				cursorKey = buttonEdges.get(cursorKey | (finger.left < (w/2) ? TOP_LEFT_EDGE : TOP_RIGHT_EDGE), cursorKey);
+				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
 			}
 			if( finger.bottom > h ) {
 				cursorKey = buttonEdges.get(cursorKey | BOTTOM_EDGE, cursorKey);
+				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
 			}
-			for(; finger.left < 0; finger.left += w) {
+			for(; w > 0 && finger.left < 0; finger.left += w) {
 				cursorKey = buttonEdges.get(cursorKey | LEFT_EDGE, cursorKey);
+				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
 			}
-			for(; finger.right > w; finger.right -= w) {
+			for(finger.right -= w; w > 0 && finger.right > 0; finger.right -= w) {
 				cursorKey = buttonEdges.get(cursorKey | RIGHT_EDGE, cursorKey);
+				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
 			}
 			if( cursorKey > 0 ) {
-				// and press it also
+				// and press the second key also
 				buttons.setPressed(cursorKey, pressed);
 				button = button | cursorKey;
 			}
@@ -145,18 +147,13 @@ public class SoftKeyboard extends InputMethodService {
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP: // primary and secondary pointer events are all the same to us
 				if( hasNewKeys ) {
-					if( (buttons.chord & STICKY_KEYS) == buttons.chord && Integer.bitCount(buttons.chord) == 1) { // if the chord is all sticky keys
-						if( buttons.chord == buttons.sticky ) { // if it was already stuck
-							buttons.unstick(buttons.chord);
-						} else {
-							buttons.stick(buttons.chord);
-						}
-					} else {
-						boolean modified = kb.commitChord(buttons.chord | buttons.sticky);
-						if( modified ) {
-							// consume the sticky keys
-							buttons.unstick(buttons.sticky);
-						}
+					// if the chord is exactly one sticky key
+					if( (buttons.chord & STICKY_KEYS) == buttons.chord && Integer.bitCount(buttons.chord) == 1) {
+						// toggle that sticky key
+						buttons.toggleSticky();
+					} else if( commitChord(buttons.chord | buttons.sticky) ) {
+						// consume all stuck keys
+						buttons.unstick(buttons.sticky);
 					}
 				}
 				// consume the released buttons
@@ -167,11 +164,11 @@ public class SoftKeyboard extends InputMethodService {
 				hasNewKeys = false;
 				break;
 			}
-			// Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " chord: " + buttons.chord);
 			return true;
 		}
 
 		public void reset() {
+			composeChord(0);
 			hasNewKeys = false;
 			buttons.reset();
 		}
@@ -193,9 +190,9 @@ public class SoftKeyboard extends InputMethodService {
 	}
 
 	@Override public View onCreateInputView() {
+		// reset whatever chords/shifts were in progress last time
+		reset();
 
-		// button sizes in corner-grid layout:
-		//
 		// compute the button sizes
 		int w = this.getMaxWidth();
 		int h = (int)getResources().getDimension(R.dimen.key_height);
@@ -203,15 +200,14 @@ public class SoftKeyboard extends InputMethodService {
 		LayoutParams shiftKey = new LayoutParams(w/6, h);
 		LayoutParams spaceKey = new LayoutParams(w/3, h);
 
-		// create the root layout (linear, vertical)
+		// create the root layout (linear, vertical), which will hold two horizontal rows
 		LinearLayout root = new LinearLayout(this);
 		root.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 		root.setOrientation(LinearLayout.VERTICAL);
 
-		// reset whatever chords/shifts were in progress last time
-		toucher.reset();
-
+		// create the first row
 		LinearLayout row = addRow(root);
+
 		addButton(row, A_KEY, smallKey);
 		buttonEdges.put(A_KEY + RIGHT_EDGE, T_KEY);
 		buttonEdges.put(A_KEY + BOTTOM_EDGE, S_KEY);
@@ -235,12 +231,13 @@ public class SoftKeyboard extends InputMethodService {
 		buttonEdges.put(N_KEY + RIGHT_EDGE, P_KEY);
 		buttonEdges.put(N_KEY + LEFT_EDGE, NUMSHIFT_KEY);
 		buttonEdges.put(N_KEY + BOTTOM_EDGE, I_KEY);
-		
+
 		addButton(row, P_KEY, smallKey);
 		buttonEdges.put(P_KEY + LEFT_EDGE, N_KEY);
 		buttonEdges.put(P_KEY + BOTTOM_EDGE, O_KEY);
 
-		row = addRow(L);
+		// create the second row
+		row = addRow(root);
 		addButton(row, S_KEY, smallKey);
 		buttonEdges.put(S_KEY + RIGHT_EDGE, E_KEY);
 		buttonEdges.put(S_KEY + TOP_LEFT_EDGE, A_KEY);
@@ -274,10 +271,7 @@ public class SoftKeyboard extends InputMethodService {
 
 	@Override public void onStartInput(EditorInfo attribute, boolean restarting) {
 		super.onStartInput(attribute, restarting);
-
-		// Reset our state.  We want to do this even if restarting, because
-		// the underlying state of the text editor could have changed in any way.
-		toucher.reset();
+		reset();
 
 		// We are now going to initialize our state based on the type of
 		// text being edited.
@@ -290,14 +284,19 @@ public class SoftKeyboard extends InputMethodService {
 		}
 	}
 
+	public void reset() {
+		toucher.reset();
+		composeChord(0);
+	}
+
 	@Override public void onFinishInput() {
 		super.onFinishInput();
-		toucher.reset();
+		reset();
 	}
 
 	@Override public void onStartInputView(EditorInfo attribute, boolean restarting) {
 		super.onStartInputView(attribute, restarting);
-		toucher.reset();
+		reset();
 	}
 	
 	public boolean sendKeyPress(int keyCode) {
@@ -314,7 +313,7 @@ public class SoftKeyboard extends InputMethodService {
 
 	public boolean commitChord(int chord) {
 		String value = mChords.getChord(chord, "");
-		Log.d("commitChord", value);
+
 		if( value.length() == 0 )
 			return false;
 
