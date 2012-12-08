@@ -67,7 +67,7 @@ public class SoftKeyboard extends InputMethodService {
 	private class KeyToucher implements View.OnTouchListener {
 		private boolean hasNewKeys = false;
 		public ButtonPanel buttons = new ButtonPanel();
-		public PointerSet pointers = new PointerSet();
+		public Hand pointers = new Hand();
 
 		private int fatFingerPress(View v, MotionEvent.PointerCoords coords, boolean pressed) {
 			if( v == null ) return 0;
@@ -308,10 +308,15 @@ public class SoftKeyboard extends InputMethodService {
 
 	public void composeChord(int chord) {
 		String output = mChords.getOutput(chord, "");
-		getCurrentInputConnection().setComposingText(output, 1);
+		if( output == null ) output = "";
+		InputConnection ic = getCurrentInputConnection();
+		if( ic != null ) ic.setComposingText(output, 1);
 	}
 
 	public boolean commitChord(int chord) {
+		InputConnection ic = getCurrentInputConnection();
+		if( ic == null ) return false;
+
 		String value = mChords.getChord(chord, "");
 
 		if( value.length() == 0 )
