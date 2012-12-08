@@ -7,7 +7,7 @@ class PointerSet {
 	public void set(int pointerId, int value) { // set the buttons pressed by this pointer
 		pointers.put(pointerId, value);
 	}
-	public void release(int pointerId, ButtonSet buttons) {
+	public void release(int pointerId, ButtonPanel buttons) {
 		// b is the buttons pushed by this pointer
 		int b = pointers.get(pointerId, 0);
 		// if there are no buttons to release, do nothing

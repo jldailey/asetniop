@@ -3,31 +3,39 @@ package org.asetniop;
 import java.util.HashMap;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 
-class ButtonSet {
+class ButtonPanel {
 
-	class Key extends Button {
+	class MyButton extends Button {
 		private Drawable originalBackground;
-		public Key(Context context) {
-			super(context);
+		private SoftKeyboard kb;
+		public MyButton(SoftKeyboard kb) {
+			super(kb);
+			this.kb = kb;
 			this.originalBackground = getBackground();
+			this.textSize = this.getTextSize() / 2;
 		}
 		public int keyCode;
-		private int status = 0; // this can be -1, 0, or 1; because the UI will sometimes send the up,down messages out of order
+		private float textSize;
+		private int status = 0;
 		public void updateBackground() {
 			if( status == 1 ) {
-				setBackgroundColor(Color.DKGRAY);
+				setBackgroundColor(Color.rgb(160, 160, 170));
 			} else {
 				setBackground(originalBackground);
 			}
 		}
 		public void updateText(int chord) {
-			setText(SoftKeyboard.getLabel(chord | this.keyCode));
+			String label = kb.getLabel(chord | this.keyCode);
+			setText(label);
+			if (label.length() > 3) {
+				setTextSize(this.textSize * .8f);
+			} else {
+				setTextSize(this.textSize);
+			}
 		}
 		public void reset() {
 			status = 0;
@@ -47,13 +55,20 @@ class ButtonSet {
 		}
 	}
 
+	public Button createButton(SoftKeyboard kb, int keyCode) {
+		MyButton b = new MyButton(kb);
+		b.keyCode = keyCode;
+		b.setTag(Integer.valueOf(keyCode));
+		add(b);
+		return b;
+	}
+
 	@SuppressLint("UseSparseArrays")
-	private HashMap<Integer,Key> buttons = new HashMap<Integer,Key>();
+	private HashMap<Integer,MyButton> buttons = new HashMap<Integer,MyButton>();
 	public int chord = 0;
 	public int sticky = 0;
-
 	public void setPressed(int keyCode, boolean flag) {
-		Key b = buttons.get(keyCode);
+		MyButton b = buttons.get(keyCode);
 		if( b == null ) return;
 		if( b.press(flag) == 1 ) {
 			chord = chord | keyCode;
@@ -62,38 +77,28 @@ class ButtonSet {
 		}
 		refresh(chord | sticky);
 	}
-
 	public void refresh(int g) {
-		for( Key b : buttons.values() ) {
+		for( MyButton b : buttons.values() ) {
 			b.updateBackground();
 			b.updateText(g);
 		}
 	}
-
 	public void stick(int keyCode) {
 		sticky = sticky | keyCode;
 		setPressed(keyCode, true);
 		refresh(chord | sticky);
 	}
-
 	public void unstick(int keyCode) {
 		sticky = sticky ^ ( sticky & keyCode );
 		setPressed(keyCode, false);
 		refresh(chord | sticky);
 	}
-
-	public Button add(Context parent, int keyCode, String label, LayoutParams layout) {
-		Key b = new Key(parent);
-		b.keyCode = keyCode;
-		b.setText(label);
-		b.setTag(Integer.valueOf(keyCode));
-		b.setLayoutParams(layout);
-		return b;
+	public void add(MyButton button) {
+		buttons.put(button.keyCode, button);
 	}
-
 	public void reset() {
 		chord = 0;
-		for( Key b : buttons.values() ) {
+		for( MyButton b : buttons.values() ) {
 			b.reset();
 		}
 	}

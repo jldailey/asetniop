@@ -16,24 +16,19 @@
 
 package org.asetniop;
 
-import java.util.HashMap;
-import java.util.Iterator;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import com.example.android.softkeyboard.R;
+import org.asetniop.R;
 
 import android.graphics.Rect;
 import android.inputmethodservice.InputMethodService;
 import android.text.InputType;
 import android.util.Log;
-import android.util.SparseArray;
 import android.util.SparseIntArray;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import android.widget.*;
 
 @SuppressWarnings("serial")
@@ -58,144 +53,22 @@ public class SoftKeyboard extends InputMethodService {
 	static final int BOTTOM_EDGE = 1 << 14;
 	static final int LEFT_EDGE = 1 << 15;
 
-	private static final SparseIntArray fatFingerEdges = new SparseIntArray() {{
-		put(SHIFT_KEY + TOP_LEFT_EDGE, A_KEY);
-		put(SHIFT_KEY + TOP_RIGHT_EDGE, S_KEY);
-		put(SHIFT_KEY + RIGHT_EDGE, SPACE_KEY);
-		put(NUMSHIFT_KEY + TOP_LEFT_EDGE, O_KEY);
-		put(NUMSHIFT_KEY + TOP_RIGHT_EDGE, P_KEY);
-		put(NUMSHIFT_KEY + LEFT_EDGE, SPACE_KEY);
-		put(SPACE_KEY + LEFT_EDGE, SHIFT_KEY);
-		put(SPACE_KEY + RIGHT_EDGE, NUMSHIFT_KEY);
-		put(A_KEY + RIGHT_EDGE, S_KEY);
-		put(S_KEY + RIGHT_EDGE, E_KEY);
-		put(E_KEY + RIGHT_EDGE, T_KEY);
-		put(T_KEY + RIGHT_EDGE, N_KEY);
-		put(N_KEY + RIGHT_EDGE, I_KEY);
-		put(I_KEY + RIGHT_EDGE, O_KEY);
-		put(O_KEY + RIGHT_EDGE, P_KEY);
-		put(S_KEY + LEFT_EDGE, A_KEY);
-		put(E_KEY + LEFT_EDGE, S_KEY);
-		put(T_KEY + LEFT_EDGE, E_KEY);
-		put(N_KEY + LEFT_EDGE, T_KEY);
-		put(I_KEY + LEFT_EDGE, N_KEY);
-		put(O_KEY + LEFT_EDGE, I_KEY);
-		put(P_KEY + LEFT_EDGE, O_KEY);
-		put(A_KEY + BOTTOM_EDGE, SHIFT_KEY);
-		put(S_KEY + BOTTOM_EDGE, SHIFT_KEY);
-		put(E_KEY + BOTTOM_EDGE, SPACE_KEY);
-		put(T_KEY + BOTTOM_EDGE, SPACE_KEY);
-		put(N_KEY + BOTTOM_EDGE, SPACE_KEY);
-		put(I_KEY + BOTTOM_EDGE, SPACE_KEY);
-		put(O_KEY + BOTTOM_EDGE, NUMSHIFT_KEY);
-		put(P_KEY + BOTTOM_EDGE, NUMSHIFT_KEY);
-	}};
+	// this is a map of the connected edges, so entries are like A_KEY + RIGHT_EDGE => E_KEY
+	// filled out by onCreateView, since that also defines the layout
+	private static SparseIntArray buttonEdges = new SparseIntArray();
 
-	public static int getFatKey(int baseKey, int edge, int multiplier) {
-		int cursorKey = baseKey;
-		while( multiplier-- > 0 && cursorKey > 0 ) {
-			cursorKey = fatFingerEdges.get(cursorKey | edge, 0);
-		}
-		return cursorKey;
-	}
-	private static class ChordMap extends HashMap<String, String> {}
-	private static class ChordList extends SparseArray<String> {}
-
-	// maps combinations of the key bits to string outputs
-	// we read these from res/raw/chords.json
-	private static ChordList mChords = new ChordList();
-
-	private static ChordMap mOutputs = new ChordMap() {{
-		put("<Tab>", "\t");
-		put("<Newline>", "\n");
-		put("<LF>", "\n");
-		put("<NL>", "\n");
-		put("<CR>", "\r");
-		put("<Shift>", "");
-		put("<Ctrl>", "");
-		put("<Alt>", "");
-		put("<Number>", "");
-		put("<Backspace>", "");
-		put("<LessThan>", "<"); // because eclipse has a bug with JSON files with a bare less-than value: "<"
-		put("<GreaterThan>", ">");
-	}};
-
-	private static ChordMap mLabels = new ChordMap() {{
-		put("<Tab>", "\\t");
-		put("<Newline>", "\\n");
-		put("<LF>", "\\n");
-		put("<NL>", "\\n");
-		put("<CR>", "\\r");
-		put("<Shift>", "sh");
-		put("<Ctrl>", "ctl");
-		put("<Alt>", "alt");
-		put("<Number>", "num");
-		put("<Backspace>", "bs");
-		put("<LessThan>", "<");
-		put("<GreaterThan>", ">");
-		put(" ", "space");
-		put("a", "a");
-		put("s", "s");
-		put("e", "e");
-		put("t", "t");
-		put("n", "n");
-		put("i", "i");
-		put("o", "o");
-		put("p", "p");
-	}};
-
-	public static String getLabel(int chord) {
-		String s = getChord(chord);
-		String t = mLabels.get(s);
-		if( t == null ) t = s;
-		return t;
-	}
-	public static String getLabel(String chord) {
-		String r = mLabels.get(chord);
-		if( r == null ) r = chord;
-		return r;
-	}
-
-	public static String getOutput(int chord) {
-		String s = getChord(chord);
-		String t = mOutputs.get(s);
-		if( t == null ) t = s;
-		return t;
-	}
-	public static String getOutput(String chord) {
-		String r = mOutputs.get(chord);
-		if( r == null ) r = chord;
-		return r;
-	}
-
-	public static String getChord(int chord) {
-		return mChords.get(chord, "");
-	}
-
-	/* This is the central collector of all the touch events
-	 * from the different buttons.
-	 */
-	KeyToucher toucher;
+	private KeyToucher toucher;
+	public ChordSet mChords;
 
 	@Override public void onCreate() {
 		super.onCreate();
 		toucher = new KeyToucher(this);
-		try {
-			JSONObject obj = new JSONObject(Util.convertStreamToString(getResources().openRawResource(R.raw.chords)));
-			@SuppressWarnings("unchecked")
-			Iterator<String> i = obj.keys();
-			while( i.hasNext() ) {
-				String key = i.next();
-				mChords.put(Integer.parseInt(key), obj.getString(key));
-			}
-		} catch( JSONException e ) {
-			Log.e("json-error", e.toString());
-		}
+		mChords = new ChordSet(getResources().openRawResource(R.raw.chords));
 	}
 
 	private class KeyToucher implements View.OnTouchListener {
 		private boolean hasNewKeys = false;
-		public ButtonSet buttons = new ButtonSet();
+		public ButtonPanel buttons = new ButtonPanel();
 		public PointerSet pointers = new PointerSet();
 
 		private SoftKeyboard kb;
@@ -206,8 +79,6 @@ public class SoftKeyboard extends InputMethodService {
 		private int fatFingerPress(View v, MotionEvent.PointerCoords coords, boolean pressed) {
 			// the original button pressed
 			int button = (Integer)v.getTag();
-			// the extra button we may spill-over onto with our fat fingers
-			int button2 = 0;
 
 			// first, find the finger
 			Rect finger = new Rect();
@@ -219,32 +90,28 @@ public class SoftKeyboard extends InputMethodService {
 			finger.bottom = Math.round(coords.y) + m;
 
 			// test each of the edges
-			int edge = 0;
-			int multiplier = 1;
 			int w = v.getWidth();
-			if( finger.left < 0 ) {
-				edge = LEFT_EDGE;
-				multiplier = 1 + (finger.left / -w);
-			} else if( finger.right > w ) {
-				edge = RIGHT_EDGE;
-				multiplier = finger.right / w;
-			}
-			else if( finger.top < 0 )
-				edge = finger.left < (w/2) ? TOP_LEFT_EDGE : TOP_RIGHT_EDGE;
-			else if( finger.bottom > v.getHeight() )
-				edge = BOTTOM_EDGE;
+			int h = v.getHeight();
 
 			// press the original button
 			buttons.setPressed(button,  pressed);
-			// if we crossed an edge
-			if( edge > 0 ) {
-				// find the button on the other side of that edge
-				button2 = getFatKey(button, edge, multiplier); // fatFingerEdges.get(button | edge, 0);
-				if( button2 > 0 ) {
-					// and press it also
-					buttons.setPressed(button2, pressed);
-					button = button | button2;
-				}
+			int cursorKey = button;
+			if( finger.top < 0 ) {
+				cursorKey = buttonEdges.get(cursorKey | (finger.left < (w/2) ? TOP_LEFT_EDGE : TOP_RIGHT_EDGE), cursorKey);
+			}
+			if( finger.bottom > h ) {
+				cursorKey = buttonEdges.get(cursorKey | BOTTOM_EDGE, cursorKey);
+			}
+			for(; finger.left < 0; finger.left += w) {
+				cursorKey = buttonEdges.get(cursorKey | LEFT_EDGE, cursorKey);
+			}
+			for(; finger.right > w; finger.right -= w) {
+				cursorKey = buttonEdges.get(cursorKey | RIGHT_EDGE, cursorKey);
+			}
+			if( cursorKey > 0 ) {
+				// and press it also
+				buttons.setPressed(cursorKey, pressed);
+				button = button | cursorKey;
 			}
 			return button;
 		}
@@ -258,7 +125,6 @@ public class SoftKeyboard extends InputMethodService {
 			// so later we can release all those buttons when that pointer id is lifted
 			// no matter the location
 
-			int button = (Integer)v.getTag();
 			int p, i = 0;
 			MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
 
@@ -273,12 +139,13 @@ public class SoftKeyboard extends InputMethodService {
 					event.getPointerCoords(p, coords);
 					pointers.set(i, fatFingerPress(v, coords, true));
 				}
-				composeChord(buttons.chord | buttons.sticky);
+				if( hasNewKeys )
+					composeChord(buttons.chord | buttons.sticky);
 				break;
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP: // primary and secondary pointer events are all the same to us
 				if( hasNewKeys ) {
-					if( (buttons.chord & STICKY_KEYS) == buttons.chord ) { // if the chord is all sticky keys
+					if( (buttons.chord & STICKY_KEYS) == buttons.chord && Integer.bitCount(buttons.chord) == 1) { // if the chord is all sticky keys
 						if( buttons.chord == buttons.sticky ) { // if it was already stuck
 							buttons.unstick(buttons.chord);
 						} else {
@@ -300,7 +167,7 @@ public class SoftKeyboard extends InputMethodService {
 				hasNewKeys = false;
 				break;
 			}
-			Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " chord: " + buttons.chord);
+			// Log.d("onTouch", "button: " + button + " action: " + event.getAction() + " chord: " + buttons.chord);
 			return true;
 		}
 
@@ -311,7 +178,11 @@ public class SoftKeyboard extends InputMethodService {
 	}
 
 	private void addButton(LinearLayout row, int keyCode, LayoutParams layout) {
-		row.addView(toucher.buttons.add(this, keyCode, getLabel(keyCode), layout));
+		Button b = toucher.buttons.createButton(this, keyCode);
+		b.setLayoutParams(layout);
+		b.setText(mChords.getLabel(keyCode, ""));
+		b.setOnTouchListener(this.toucher);
+		row.addView(b);
 	}
 
 	private LinearLayout addRow(LinearLayout base) {
@@ -323,12 +194,14 @@ public class SoftKeyboard extends InputMethodService {
 
 	@Override public View onCreateInputView() {
 
+		// button sizes in corner-grid layout:
+		//
 		// compute the button sizes
 		int w = this.getMaxWidth();
-		int h = this.getResources().getInteger(R.dimen.key_height);
-		LayoutParams smallKey = new LayoutParams(w/8, h);
-		LayoutParams shiftKey = new LayoutParams(w/4, h);
-		LayoutParams spaceKey = new LayoutParams(w/2, h);
+		int h = (int)getResources().getDimension(R.dimen.key_height);
+		LayoutParams smallKey = new LayoutParams(w/6, h);
+		LayoutParams shiftKey = new LayoutParams(w/6, h);
+		LayoutParams spaceKey = new LayoutParams(w/3, h);
 
 		// create the root layout (linear, vertical)
 		LinearLayout root = new LinearLayout(this);
@@ -340,18 +213,61 @@ public class SoftKeyboard extends InputMethodService {
 
 		LinearLayout row = addRow(root);
 		addButton(row, A_KEY, smallKey);
-		addButton(row, S_KEY, smallKey);
-		addButton(row, E_KEY, smallKey);
-		addButton(row, T_KEY, smallKey);
-		addButton(row, N_KEY, smallKey);
-		addButton(row, I_KEY, smallKey);
-		addButton(row, O_KEY, smallKey);
-		addButton(row, P_KEY, smallKey);
+		buttonEdges.put(A_KEY + RIGHT_EDGE, T_KEY);
+		buttonEdges.put(A_KEY + BOTTOM_EDGE, S_KEY);
 
-		row = addRow(root);
+		addButton(row, T_KEY, smallKey);
+		buttonEdges.put(T_KEY + RIGHT_EDGE, SHIFT_KEY);
+		buttonEdges.put(T_KEY + LEFT_EDGE, A_KEY);
+		buttonEdges.put(T_KEY + BOTTOM_EDGE, E_KEY);
+
 		addButton(row, SHIFT_KEY, shiftKey);
-		addButton(row, SPACE_KEY, spaceKey);
+		buttonEdges.put(SHIFT_KEY + RIGHT_EDGE, NUMSHIFT_KEY);
+		buttonEdges.put(SHIFT_KEY + LEFT_EDGE, T_KEY);
+		buttonEdges.put(SHIFT_KEY + BOTTOM_EDGE, SPACE_KEY);
+
 		addButton(row, NUMSHIFT_KEY, shiftKey);
+		buttonEdges.put(NUMSHIFT_KEY + RIGHT_EDGE, N_KEY);
+		buttonEdges.put(NUMSHIFT_KEY + LEFT_EDGE, SHIFT_KEY);
+		buttonEdges.put(NUMSHIFT_KEY + BOTTOM_EDGE, SPACE_KEY);
+
+		addButton(row, N_KEY, smallKey);
+		buttonEdges.put(N_KEY + RIGHT_EDGE, P_KEY);
+		buttonEdges.put(N_KEY + LEFT_EDGE, NUMSHIFT_KEY);
+		buttonEdges.put(N_KEY + BOTTOM_EDGE, I_KEY);
+		
+		addButton(row, P_KEY, smallKey);
+		buttonEdges.put(P_KEY + LEFT_EDGE, N_KEY);
+		buttonEdges.put(P_KEY + BOTTOM_EDGE, O_KEY);
+
+		row = addRow(L);
+		addButton(row, S_KEY, smallKey);
+		buttonEdges.put(S_KEY + RIGHT_EDGE, E_KEY);
+		buttonEdges.put(S_KEY + TOP_LEFT_EDGE, A_KEY);
+		buttonEdges.put(S_KEY + TOP_RIGHT_EDGE, A_KEY);
+
+		addButton(row, E_KEY, smallKey);
+		buttonEdges.put(E_KEY + RIGHT_EDGE, SPACE_KEY);
+		buttonEdges.put(E_KEY + LEFT_EDGE, S_KEY);
+		buttonEdges.put(E_KEY + TOP_LEFT_EDGE, T_KEY);
+		buttonEdges.put(E_KEY + TOP_RIGHT_EDGE, T_KEY);
+
+		addButton(row, SPACE_KEY, spaceKey);
+		buttonEdges.put(SPACE_KEY + RIGHT_EDGE, I_KEY);
+		buttonEdges.put(SPACE_KEY + LEFT_EDGE, E_KEY);
+		buttonEdges.put(SPACE_KEY + TOP_LEFT_EDGE, SHIFT_KEY);
+		buttonEdges.put(SPACE_KEY + TOP_RIGHT_EDGE, NUMSHIFT_KEY);
+
+		addButton(row, I_KEY, smallKey);
+		buttonEdges.put(I_KEY + RIGHT_EDGE, O_KEY);
+		buttonEdges.put(I_KEY + LEFT_EDGE, SPACE_KEY);
+		buttonEdges.put(I_KEY + TOP_LEFT_EDGE, N_KEY);
+		buttonEdges.put(I_KEY + TOP_RIGHT_EDGE, N_KEY);
+
+		addButton(row, O_KEY, smallKey);
+		buttonEdges.put(O_KEY + LEFT_EDGE, I_KEY);
+		buttonEdges.put(O_KEY + TOP_LEFT_EDGE, P_KEY);
+		buttonEdges.put(O_KEY + TOP_RIGHT_EDGE, P_KEY);
 
 		return root;
 	}
@@ -383,24 +299,37 @@ public class SoftKeyboard extends InputMethodService {
 		super.onStartInputView(attribute, restarting);
 		toucher.reset();
 	}
+	
+	public boolean sendKeyPress(int keyCode) {
+		InputConnection ic = getCurrentInputConnection();
+		ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyCode));
+		ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, keyCode));
+		return true;
+	}
 
 	public void composeChord(int chord) {
-		String output = getOutput(chord);
+		String output = mChords.getOutput(chord, "");
 		getCurrentInputConnection().setComposingText(output, 1);
 	}
 
 	public boolean commitChord(int chord) {
-		String value = getChord(chord);
-		if( value.length() > 0 ) {
-			if( value.equals("<Backspace>") ) {
-				getCurrentInputConnection().deleteSurroundingText(1,0);
-			} else {
-				getCurrentInputConnection().commitText(getOutput(value), 1);
-			}
-			return true;
-		}
-		return false;
+		String value = mChords.getChord(chord, "");
+		Log.d("commitChord", value);
+		if( value.length() == 0 )
+			return false;
+
+		if( value.equals("<Backspace>") )
+			return getCurrentInputConnection().deleteSurroundingText(1,0) || true;
+
+		int raw = mChords.getRawKey(chord, 0);
+		if( raw > 0 )
+			return sendKeyPress(raw);
+
+		return getCurrentInputConnection().commitText(mChords.getOutput(chord,  value), 1) || true;
 	}
 
+	public String getLabel(int chord) {
+		return mChords.getLabel(chord,  "" + chord);
+	}
 
 }
