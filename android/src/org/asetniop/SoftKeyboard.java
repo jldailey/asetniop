@@ -92,22 +92,39 @@ public class SoftKeyboard extends InputMethodService {
 			// test each of the edges
 			int w = v.getWidth();
 			int h = v.getHeight();
+			int overlapMargin = w/4;
 
 			int cursorKey = button;
-			if( finger.top < 0 ) {
-				cursorKey = buttonEdges.get(cursorKey | (finger.left < (w/2) ? TOP_LEFT_EDGE : TOP_RIGHT_EDGE), cursorKey);
-				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
-			}
-			if( finger.bottom > h ) {
-				cursorKey = buttonEdges.get(cursorKey | BOTTOM_EDGE, cursorKey);
-				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
-			}
 			for(; w > 0 && finger.left < 0; finger.left += w) {
+				if( finger.left > -overlapMargin ) {
+					buttons.setPressed(cursorKey, pressed);
+					button = button | cursorKey;
+				}
 				cursorKey = buttonEdges.get(cursorKey | LEFT_EDGE, cursorKey);
 				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
 			}
 			for(finger.right -= w; w > 0 && finger.right > 0; finger.right -= w) {
+				if( finger.right < overlapMargin ) {
+					buttons.setPressed(cursorKey, pressed);
+					button = button | cursorKey;
+				}
 				cursorKey = buttonEdges.get(cursorKey | RIGHT_EDGE, cursorKey);
+				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
+			}
+			if( finger.top < 0 ) {
+				if( finger.top > -overlapMargin ) {
+					buttons.setPressed(cursorKey, pressed);
+					button = button | cursorKey;
+				}
+				cursorKey = buttonEdges.get(cursorKey | (finger.left < (w/2) ? TOP_LEFT_EDGE : TOP_RIGHT_EDGE), cursorKey);
+				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
+			}
+			if( finger.bottom > h ) {
+				if( (finger.bottom - h) < overlapMargin ) {
+					buttons.setPressed(cursorKey, pressed);
+					button = button | cursorKey;
+				}
+				cursorKey = buttonEdges.get(cursorKey | BOTTOM_EDGE, cursorKey);
 				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
 			}
 			if( cursorKey > 0 ) {
@@ -308,9 +325,12 @@ public class SoftKeyboard extends InputMethodService {
 
 	public void composeChord(int chord) {
 		String output = mChords.getOutput(chord, "");
-		if( output == null ) output = "";
 		InputConnection ic = getCurrentInputConnection();
-		if( ic != null ) ic.setComposingText(output, 1);
+		if( ic == null ) return;
+		if( output == null )
+			ic.finishComposingText();
+		else
+			ic.setComposingText(output, 1);
 	}
 
 	public boolean commitChord(int chord) {
@@ -323,17 +343,17 @@ public class SoftKeyboard extends InputMethodService {
 			return false;
 
 		if( value.equals("<Backspace>") )
-			return getCurrentInputConnection().deleteSurroundingText(1,0) || true;
+			return ic.deleteSurroundingText(1,0) || true;
 
 		int raw = mChords.getRawKey(chord, 0);
 		if( raw > 0 )
 			return sendKeyPress(raw);
 
-		return getCurrentInputConnection().commitText(mChords.getOutput(chord,  value), 1) || true;
+		return ic.commitText(mChords.getOutput(chord,  value), 1) || true;
 	}
 
 	public String getLabel(int chord) {
-		return mChords.getLabel(chord,  "" + chord);
+		return mChords.getLabel(chord,  "" );
 	}
 
 }
