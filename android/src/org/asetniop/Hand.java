@@ -17,7 +17,7 @@ class Hand {
 			// if this finger pushed this button
 			if( (b & i) == i ) {
 				// and it isn't currently stuck down
-				if( ! ((buttons.sticky & i) == i) ) {
+				if( ! ((buttons.stuck & i) == i) ) {
 					// release it
 					buttons.setPressed(i, false);
 				}

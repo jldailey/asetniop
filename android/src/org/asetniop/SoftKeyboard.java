@@ -42,7 +42,6 @@ public class SoftKeyboard extends InputMethodService {
 	static final int SHIFT_KEY = 1 << 8;
 	static final int SPACE_KEY = 1 << 9;
 	static final int NUMSHIFT_KEY = 1 << 10;
-	static final int STICKY_KEYS = SHIFT_KEY | NUMSHIFT_KEY;
 
 	static final int TOP_LEFT_EDGE = 1 << 11;
 	static final int TOP_RIGHT_EDGE = 1 << 12;
@@ -63,11 +62,11 @@ public class SoftKeyboard extends InputMethodService {
 		mChords = new ChordSet(getResources().openRawResource(R.raw.chords));
 	}
 
-	// onTouch events from all the various buttons and views go through KeyToucher
+	// onTouch events from all the various buttons and views go through a single KeyToucher
 	private class KeyToucher implements View.OnTouchListener {
 		private boolean hasNewKeys = false;
-		public ButtonPanel buttons = new ButtonPanel();
-		public Hand pointers = new Hand();
+		public ButtonPanel buttons = new ButtonPanel(); // tracks the pressed state of the group of buttons, to tell us the final gesture.
+		public Hand pointers = new Hand(); // tracks the position of multiple fingers
 
 		private int fatFingerPress(View v, MotionEvent.PointerCoords coords, boolean pressed) {
 			if( v == null ) return 0;
@@ -101,7 +100,7 @@ public class SoftKeyboard extends InputMethodService {
 					button = button | cursorKey;
 				}
 				cursorKey = buttonEdges.get(cursorKey | LEFT_EDGE, cursorKey);
-				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
+				if( cursorKey > 0 ) w = buttons.getButton(cursorKey).getWidth();
 			}
 			for(finger.right -= w; w > 0 && finger.right > 0; finger.right -= w) {
 				if( finger.right < overlapMargin ) {
@@ -109,7 +108,7 @@ public class SoftKeyboard extends InputMethodService {
 					button = button | cursorKey;
 				}
 				cursorKey = buttonEdges.get(cursorKey | RIGHT_EDGE, cursorKey);
-				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
+				if( cursorKey > 0 ) w = buttons.getButton(cursorKey).getWidth();
 			}
 			if( finger.top < 0 ) {
 				if( finger.top > -overlapMargin ) {
@@ -117,7 +116,7 @@ public class SoftKeyboard extends InputMethodService {
 					button = button | cursorKey;
 				}
 				cursorKey = buttonEdges.get(cursorKey | (finger.left < (w/2) ? TOP_LEFT_EDGE : TOP_RIGHT_EDGE), cursorKey);
-				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
+				if( cursorKey > 0 ) w = buttons.getButton(cursorKey).getWidth();
 			}
 			if( finger.bottom > h ) {
 				if( (finger.bottom - h) < overlapMargin ) {
@@ -125,7 +124,7 @@ public class SoftKeyboard extends InputMethodService {
 					button = button | cursorKey;
 				}
 				cursorKey = buttonEdges.get(cursorKey | BOTTOM_EDGE, cursorKey);
-				if( cursorKey > 0 ) w = buttons.get(cursorKey).getWidth();
+				if( cursorKey > 0 ) w = buttons.getButton(cursorKey).getWidth();
 			}
 			if( cursorKey > 0 ) {
 				// and press the second key also
@@ -159,19 +158,12 @@ public class SoftKeyboard extends InputMethodService {
 					pointers.set(i, fatFingerPress(v, coords, true));
 				}
 				if( hasNewKeys )
-					composeChord(buttons.chord | buttons.sticky);
+					composeChord(buttons.chord | buttons.stuck);
 				break;
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP: // primary and secondary pointer events are all the same to us
 				if( hasNewKeys ) {
-					// if the chord is exactly one sticky key
-					if( (buttons.chord & STICKY_KEYS) == buttons.chord && Integer.bitCount(buttons.chord) == 1) {
-						// toggle that sticky key
-						buttons.toggleSticky();
-					} else if( commitChord(buttons.chord | buttons.sticky) ) {
-						// consume all stuck keys
-						buttons.unstick(buttons.sticky);
-					}
+					commitChord(buttons.consumeChord());
 				}
 				// consume the released buttons
 				for(p = 0; p < event.getPointerCount(); p++) {
@@ -294,6 +286,7 @@ public class SoftKeyboard extends InputMethodService {
 		// text being edited.
 		switch (attribute.inputType & InputType.TYPE_MASK_CLASS) {
 		case InputType.TYPE_CLASS_NUMBER:
+			toucher.buttons.lock(NUMSHIFT_KEY);
 		case InputType.TYPE_CLASS_DATETIME:
 		case InputType.TYPE_CLASS_PHONE:
 		case InputType.TYPE_CLASS_TEXT:
